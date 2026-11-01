@@ -175,7 +175,8 @@ function statCard(label, value, detail, accent) {
 }
 
 async function renderDashboard(outlet) {
-  const frame = pageFrame("今天的工作台", "把工作、目標與生活放在同一個節奏裡", "收入、工作時數與目標狀態各自保留來源。");
+  const frame = pageFrame("今天的工作台", "把目標與生活\n放在同一個節奏裡", "收入、工作時數與目標狀態各自保留來源。");
+  frame.querySelector("h1").classList.add("dashboard-title");
   const controls = el("div", { className: "toolbar dashboard-toolbar" });
   controls.append(field("統計月份", "month", "month", state.month), field("查看日期", "date", "date", state.date));
   controls.append(button("重新整理", "button secondary", () => load()));
