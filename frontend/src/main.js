@@ -138,14 +138,20 @@ function renderShell() {
   const active = navItems.some(([key]) => key === state.route) ? state.route : "dashboard";
   if (active !== state.route) history.replaceState(null, "", "#/dashboard");
   state.route = active;
+  const dashboardBrandMarkup = active === "dashboard"
+    ? '<span class="brand-mark"><img src="/assets/flowfolio-wordmark-cropped.jpg" alt="Flowfolio 品牌字樣" /></span>'
+    : "";
+  const dashboardHeaderBrandMarkup = active === "dashboard"
+    ? '<div class="main-brand-photo"><img src="/assets/flowfolio-wordmark-cropped.jpg" alt="Flowfolio 右上角品牌字樣" /></div>'
+    : "";
   app.innerHTML = `
     <div class="app-shell">
       <aside class="sidebar">
-        <div class="brand"><span class="brand-mark"><img src="/assets/flowfolio-wordmark-cropped.jpg" alt="Flowfolio 品牌字樣" /></span><div><strong>Flowfolio</strong><small>工作與目標節奏</small></div></div>
+        <div class="brand">${dashboardBrandMarkup}<div><strong>Flowfolio</strong><small>工作與目標節奏</small></div></div>
         <nav class="sidebar-nav" aria-label="主要導覽"></nav>
         <div class="sidebar-footer"><span class="status-dot"></span><span>私人本機模式</span></div>
       </aside>
-      <main class="main-content"><div class="main-brand-photo"><img src="/assets/flowfolio-wordmark-cropped.jpg" alt="Flowfolio 右上角品牌字樣" /></div><div id="page"></div></main>
+      <main class="main-content">${dashboardHeaderBrandMarkup}<div id="page"></div></main>
       <nav class="mobile-nav" aria-label="手機導覽"></nav>
     </div>
     <div id="toast-area" aria-live="polite"></div>

@@ -68,3 +68,13 @@ test("桌面與手機導覽都提供中文可理解名稱", async ({ page }) => 
   await expect(page.locator(".sidebar-nav a[aria-label]")).toHaveCount(7);
   await expect(page.locator(".mobile-nav a[aria-label]")).toHaveCount(7);
 });
+
+test("Logo 僅在總覽頁顯示", async ({ page }) => {
+  await mockApi(page);
+  for (const route of routes) {
+    await page.goto(`/#/${route}`);
+    const brandImages = page.getByRole("img", { name: /Flowfolio (品牌字樣|右上角品牌字樣)/ });
+    if (route === "dashboard") await expect(brandImages).toHaveCount(2);
+    else await expect(brandImages).toHaveCount(0);
+  }
+});
