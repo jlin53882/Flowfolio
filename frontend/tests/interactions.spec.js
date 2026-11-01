@@ -4,7 +4,17 @@ async function mockApi(page) {
   await page.route("**/api/**", async (route) => {
     const url = new URL(route.request().url());
     let payload = [];
-    if (url.pathname.endsWith("/portfolio")) {
+    if (url.pathname.endsWith("/dashboard")) {
+      payload = {
+        income: 0,
+        work_minutes: 0,
+        practice_seconds: 0,
+        completion_rate: 0,
+        date: "2026-11-01",
+        daily: [],
+        recent: [],
+      };
+    } else if (url.pathname.endsWith("/portfolio")) {
       payload = [{
         id: "test-portfolio",
         date: "2026-11-01",
@@ -31,12 +41,12 @@ test("作品圖片預覽可以開啟與關閉", async ({ page }) => {
   await expect(page.locator("dialog")).toHaveCount(0);
 });
 
-test("報價可以新增服務項目列", async ({ page }) => {
+test("已移除的報價舊路由會回到總覽", async ({ page }) => {
   await mockApi(page);
   await page.goto("/#/quotes");
-  await expect(page.locator(".quote-item-row")).toHaveCount(1);
-  await page.getByRole("button", { name: "新增項目", exact: true }).click();
-  await expect(page.locator(".quote-item-row")).toHaveCount(2);
+  await expect(page).toHaveURL(/#\/dashboard$/);
+  await expect(page.locator("#page h1")).toContainText("把工作、練習與生活放在同一個節奏裡");
+  await expect(page.getByRole("link", { name: "報價", exact: true })).toHaveCount(0);
 });
 
 test("練習計時器可以開始與暫停", async ({ page }) => {

@@ -1,7 +1,7 @@
 [project]
 name = "flowfolio"
 version = "0.1.0"
-description = "Flowfolio：單人接案、報價與練琴管理網站"
+description = "Flowfolio：單人接案與練琴管理網站"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

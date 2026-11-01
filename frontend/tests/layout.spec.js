@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const routes = ["dashboard", "works", "quotes", "portfolio", "practice", "todos", "analytics", "settings"];
+const routes = ["dashboard", "works", "portfolio", "practice", "todos", "analytics", "settings"];
 const viewports = [
   { name: "手機小尺寸", width: 360, height: 800 },
   { name: "手機標準尺寸", width: 390, height: 844 },
@@ -63,6 +63,6 @@ test("手機版導覽與鍵盤焦點可用", async ({ page }) => {
 test("桌面與手機導覽都提供中文可理解名稱", async ({ page }) => {
   await mockApi(page);
   await page.goto("/#/dashboard");
-  await expect(page.locator(".sidebar-nav a[aria-label]")).toHaveCount(8);
-  await expect(page.locator(".mobile-nav a[aria-label]")).toHaveCount(8);
+  await expect(page.locator(".sidebar-nav a[aria-label]")).toHaveCount(7);
+  await expect(page.locator(".mobile-nav a[aria-label]")).toHaveCount(7);
 });

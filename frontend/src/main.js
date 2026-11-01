@@ -7,7 +7,6 @@ const timerStorageKey = "flowfolio-practice-timer";
 const navItems = [
   ["dashboard", "總覽", "⌂"],
   ["works", "工作紀錄", "▣"],
-  ["quotes", "報價", "◇"],
   ["portfolio", "作品集", "▧"],
   ["practice", "練習", "♫"],
   ["todos", "待辦", "✓"],
@@ -24,7 +23,6 @@ const state = {
   portfolioEditing: null,
   timer: loadTimer(),
   timerInterval: null,
-  quoteDirty: false,
 };
 
 function el(tag, props = {}, children = []) {
@@ -141,6 +139,7 @@ function card(title, subtitle = "") {
 
 function renderShell() {
   const active = navItems.some(([key]) => key === state.route) ? state.route : "dashboard";
+  if (active !== state.route) history.replaceState(null, "", "#/dashboard");
   state.route = active;
   app.innerHTML = `
     <div class="app-shell">
@@ -168,7 +167,7 @@ function renderShell() {
 }
 
 function renderPage(outlet) {
-  const pages = { dashboard: renderDashboard, works: renderWorks, quotes: renderQuotes, portfolio: renderPortfolio, practice: renderPractice, todos: renderTodos, analytics: renderAnalytics, settings: renderSettings };
+  const pages = { dashboard: renderDashboard, works: renderWorks, portfolio: renderPortfolio, practice: renderPractice, todos: renderTodos, analytics: renderAnalytics, settings: renderSettings };
   (pages[state.route] || renderDashboard)(outlet);
 }
 
@@ -299,7 +298,7 @@ function renderWorkTable(container, items) {
 
 function todoForm(editing = null) {
   const form = el("form", { className: "form-grid", id: "todo-form" });
-  form.append(field("日期", "date", "date", editing?.date || state.date, { required: true }), field("時間", "time", "time", editing?.time || ""), field("標題", "text", "title", editing?.title || "", { required: true, placeholder: "例如：寄出報價單" }), field("地點", "text", "location", editing?.location || ""));
+  form.append(field("日期", "date", "date", editing?.date || state.date, { required: true }), field("時間", "time", "time", editing?.time || ""), field("標題", "text", "title", editing?.title || "", { required: true, placeholder: "例如：整理專案資料" }), field("地點", "text", "location", editing?.location || ""));
   const actions = el("div", { className: "form-actions" }); actions.append(button(editing ? "儲存修改" : "新增待辦", "button primary", undefined, "submit")); if (editing) actions.append(button("取消編輯", "button secondary", () => { state.todoEditing = null; renderShell(); })); form.append(actions); return form;
 }
 
@@ -348,37 +347,6 @@ async function renderPractice(outlet) {
   try { const items = await api("/api/v1/practice"); if (!items.length) history.append(emptyState("還沒有練習紀錄")); items.forEach((item) => { const row = el("div", { className: "list-row" }); row.append(el("span", { className: "kind-dot practice", text: "練" }), el("div", { className: "row-main" }, [el("strong", { text: item.piece }), el("small", { text: `${dateText(item.date)} · ${duration(item.duration_seconds)}${item.notes ? ` · ${item.notes}` : ""}` })]), button("編輯", "button ghost small", () => { state.practiceEditing = item; renderShell(); }), button("刪除", "button danger small", async () => { if (!confirm("確定要刪除這筆練習紀錄嗎？")) return; await api(`/api/v1/practice/${item.id}`, { method: "DELETE" }); toast("練習紀錄已刪除"); renderShell(); })); history.append(row); }); } catch (error) { history.append(emptyState(formatError(error))); }
 }
 
-function quoteItemRow(item = {}) {
-  const row = el("div", { className: "quote-item-row" });
-  row.append(field("項目", "text", "description", item.description || "", { required: true, placeholder: "服務項目" }), field("數量", "number", "quantity", item.quantity || "1", { min: 0.001, step: 0.001 }), field("單價", "number", "unit_price", item.unit_price || "0", { min: 0, step: 1 }), button("移除", "button danger small", () => { row.remove(); updateQuotePreview(); }));
-  row.querySelectorAll("input").forEach((input) => input.addEventListener("input", updateQuotePreview));
-  return row;
-}
-
-function quotePayload(form) {
-  return { quote_number: getValue(form, '[name="quote_number"]'), client_name: getValue(form, '[name="client_name"]'), quote_date: getValue(form, '[name="quote_date"]'), tax_rate_percent: getValue(form, '[name="tax_rate_percent"]') || "0", deposit_percent: Number(getValue(form, '[name="deposit_percent"]') || 0), notes: getValue(form, '[name="notes"]'), items: [...form.querySelectorAll(".quote-item-row")].map((row) => ({ description: getValue(row, '[name="description"]'), quantity: getValue(row, '[name="quantity"]') || "1", unit_price: getValue(row, '[name="unit_price"]') || "0" })) };
-}
-
-function updateQuotePreview() {
-  const form = document.querySelector("#quote-form"); const target = document.querySelector("#quote-preview"); if (!form || !target) return;
-  const items = quotePayload(form).items; const subtotal = items.reduce((sum, item) => sum + Number(item.quantity || 0) * Number(item.unit_price || 0), 0); const tax = subtotal * Number(getValue(form, '[name="tax_rate_percent"]') || 0) / 100; const total = Math.round(subtotal + tax); const deposit = Math.round(total * Number(getValue(form, '[name="deposit_percent"]') || 0) / 100); target.replaceChildren(el("div", { className: "summary-line", text: `小計 ${money(subtotal)}` }), el("div", { className: "summary-line", text: `稅額 ${money(tax)}` }), el("div", { className: "summary-total", text: `總額 ${money(total)}` }), el("div", { className: "summary-line", text: `訂金 ${money(deposit)} · 尾款 ${money(total - deposit)}` }));
-}
-
-async function renderQuotes(outlet) {
-  const frame = pageFrame("Quotes", "報價工作台", "後端以整數 TWD 與 Decimal 規則計價；前端預覽只服務操作感受。");
-  const layout = el("div", { className: "two-column quote-layout" });
-  const editor = card(state.quoteEditing ? "編輯報價" : "建立報價草稿");
-  const form = el("form", { className: "form-grid", id: "quote-form" });
-  const editing = state.quoteEditing;
-  form.append(field("報價編號", "text", "quote_number", editing?.quote_number || `Q-${new Date().toISOString().slice(0, 10).replaceAll("-", "")}`, { required: true }), field("客戶名稱", "text", "client_name", editing?.client_name || "", { required: true }), field("報價日期", "date", "quote_date", editing?.quote_date || today(), { required: true }), field("稅率（%）", "number", "tax_rate_percent", editing?.tax_rate_percent || "0", { min: 0, max: 100, step: 0.1 }), field("訂金比例（%）", "number", "deposit_percent", editing?.deposit_percent ?? "30", { min: 0, max: 100, step: 1 }), field("備註", "textarea", "notes", editing?.notes || "", { rows: 3 }));
-  const itemHeader = el("div", { className: "section-inline" }); itemHeader.append(el("h3", { text: "服務項目" }), button("新增項目", "button secondary small", () => { items.append(quoteItemRow()); updateQuotePreview(); }));
-  const items = el("div", { className: "quote-items", id: "quote-items" }); (editing?.items || [{ description: "", quantity: "1", unit_price: "0" }]).forEach((item) => items.append(quoteItemRow(item))); const preview = el("div", { className: "quote-preview", id: "quote-preview" });
-  form.append(itemHeader, items, preview); const actions = el("div", { className: "form-actions" }); actions.append(button(editing ? "儲存報價" : "儲存草稿", "button primary", undefined, "submit")); if (editing) actions.append(button("取消編輯", "button secondary", () => { state.quoteEditing = null; state.quoteDirty = false; renderShell(); })); form.append(actions); editor.append(form);
-  const listCard = card("報價歷史", "編號唯一，匯出從後端最新資料產生。"); const list = el("div", { className: "stack-list" }); listCard.append(list); layout.append(editor, listCard); frame.append(layout); outlet.replaceChildren(frame);
-  form.addEventListener("input", () => { state.quoteDirty = true; updateQuotePreview(); }); form.addEventListener("submit", async (event) => { event.preventDefault(); try { await api(state.quoteEditing ? `/api/v1/quotes/${state.quoteEditing.id}` : "/api/v1/quotes", { method: state.quoteEditing ? "PATCH" : "POST", body: quotePayload(form) }); toast("報價已儲存"); state.quoteEditing = null; state.quoteDirty = false; renderShell(); } catch (error) { toast(formatError(error), "error"); } }); updateQuotePreview();
-  try { const itemsData = await api("/api/v1/quotes"); if (!itemsData.length) list.append(emptyState("還沒有報價草稿")); itemsData.forEach((item) => { const row = el("div", { className: "list-row quote-list-row" }); row.append(el("div", { className: "row-main" }, [el("strong", { text: item.quote_number }), el("small", { text: `${item.client_name} · ${dateText(item.quote_date)} · ${money(item.totals.total)}` })])); const actions = el("div", { className: "actions" }); actions.append(button("編輯", "button ghost small", () => { state.quoteEditing = item; renderShell(); }), button("複製", "button ghost small", async () => { await api(`/api/v1/quotes/${item.id}/duplicate`, { method: "POST" }); toast("報價已複製"); renderShell(); }), el("a", { className: "c-button ghost small", href: `/api/v1/quotes/${item.id}/export.pdf`, text: "PDF" }), el("a", { className: "c-button ghost small", href: `/api/v1/quotes/${item.id}/export.csv`, text: "CSV" }), button("刪除", "button danger small", async () => { if (!confirm("確定要刪除這份報價嗎？")) return; await api(`/api/v1/quotes/${item.id}`, { method: "DELETE" }); toast("報價已刪除"); renderShell(); })); row.append(actions); list.append(row); }); } catch (error) { list.append(emptyState(formatError(error))); }
-}
-
 async function renderPortfolio(outlet) {
   const frame = pageFrame("Portfolio", "私人作品集", "作品只存於本機資料目錄；圖片透過 media ID 取用，不暴露磁碟路徑。");
   const layout = el("div", { className: "two-column portfolio-layout" }); const formCard = card(state.portfolioEditing ? "編輯作品資訊" : "新增作品"); const form = el("form", { className: "form-grid", id: "portfolio-form" }); const editing = state.portfolioEditing;
@@ -410,8 +378,7 @@ async function renderSettings(outlet) {
   try { const result = await api("/health"); healthText.replaceChildren(el("span", { className: "health-ok", text: "● " }), el("strong", { text: "服務正常" }), el("p", { text: `${result.service} · 版本 ${result.version}` })); } catch (error) { healthText.textContent = formatError(error); healthText.classList.add("error-text"); }
 }
 
-window.addEventListener("hashchange", () => { state.route = location.hash.replace(/^#\/?/, "") || "dashboard"; if (state.quoteDirty && !confirm("報價表單尚未儲存，確定要離開嗎？")) return; state.quoteDirty = false; renderShell(); });
-window.addEventListener("beforeunload", (event) => { if (state.quoteDirty) { event.preventDefault(); event.returnValue = ""; } });
+window.addEventListener("hashchange", () => { state.route = location.hash.replace(/^#\/?/, "") || "dashboard"; renderShell(); });
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden" && state.timer.running) saveTimerSnapshot(); });
 renderShell();
 

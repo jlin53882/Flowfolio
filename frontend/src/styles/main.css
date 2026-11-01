@@ -102,7 +102,7 @@ h3 { font-size: 15px; margin: 0; }
 .empty-state h3 { color: #536b6d; margin-bottom: 14px; }
 .loading { padding: 30px 8px; color: var(--muted); font-size: 13px; }
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
-.form-grid > .c-field:nth-child(2), .form-grid > .c-field:last-of-type, .form-grid > .section-inline, .form-grid > .quote-items, .form-grid > .quote-preview, .form-grid > .form-actions { grid-column: 1 / -1; }
+.form-grid > .c-field:nth-child(2), .form-grid > .c-field:last-of-type, .form-grid > .form-actions { grid-column: 1 / -1; }
 .c-field { display: grid; gap: 6px; min-width: 0; }
 .c-field-label { color: #526d70; font-size: 12px; font-weight: 700; }
 .c-input { width: 100%; border: 1px solid #d4e1de; background: #fbfdfc; color: var(--ink); border-radius: 10px; padding: 10px 11px; outline: none; min-height: 44px; }
@@ -125,14 +125,6 @@ table { width: 100%; border-collapse: collapse; min-width: 650px; }
 th { color: var(--muted); font-size: 11px; font-weight: 700; text-align: left; padding: 0 11px 10px; border-bottom: 1px solid var(--line); }
 td { padding: 13px 11px; border-bottom: 1px solid #edf2f0; font-size: 13px; vertical-align: middle; }
 td.numeric, th:nth-last-child(2) { text-align: right; }
-.quote-layout { grid-template-columns: minmax(0, 1.15fr) minmax(350px, .85fr); }
-.quote-items { display: grid; gap: 8px; }
-.section-inline { display: flex; justify-content: space-between; align-items: center; margin-top: 5px; }
-.quote-item-row { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(75px, .55fr) minmax(100px, .75fr) auto; align-items: end; gap: 8px; padding: 11px; border: 1px solid #e1ebe8; border-radius: 12px; background: #f9fcfb; }
-.quote-preview { display: grid; gap: 7px; padding: 15px 16px; border-radius: 13px; background: #eaf4f1; color: #466468; }
-.summary-line { display: flex; justify-content: space-between; font-size: 12px; }
-.summary-total { color: var(--teal-dark); font-weight: 800; font-size: 22px; margin: 3px 0; }
-.quote-list-row { align-items: flex-start; }
 .portfolio-layout { grid-template-columns: minmax(300px, .75fr) minmax(0, 1.25fr); }
 .portfolio-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
 .portfolio-card { overflow: hidden; border: 1px solid #e0ebe8; border-radius: 15px; background: #fbfdfc; }
@@ -187,7 +179,7 @@ td.numeric, th:nth-last-child(2) { text-align: right; }
   .nav-link span:last-child { display: none; }
   .sidebar-footer { padding: 8px; }
   .main-content { margin-left: 74px; width: calc(100% - 74px); padding: 30px 22px 50px; }
-  .dashboard-grid, .two-column, .quote-layout, .portfolio-layout, .practice-layout { grid-template-columns: 1fr; }
+  .dashboard-grid, .two-column, .portfolio-layout, .practice-layout { grid-template-columns: 1fr; }
   .page-header { align-items: flex-start; flex-direction: column; }
   .dashboard-toolbar { width: 100%; }
   .settings-grid { grid-template-columns: 1fr; }
@@ -206,10 +198,7 @@ td.numeric, th:nth-last-child(2) { text-align: right; }
   .stat-value { font-size: 20px; }
   .c-card { padding: 16px; border-radius: 14px; }
   .form-grid { grid-template-columns: 1fr; }
-  .form-grid > .c-field:nth-child(2), .form-grid > .c-field:last-of-type, .form-grid > .section-inline, .form-grid > .quote-items, .form-grid > .quote-preview, .form-grid > .form-actions { grid-column: auto; }
-  .quote-item-row { grid-template-columns: 1fr 1fr; }
-  .quote-item-row .c-field:first-child { grid-column: 1 / -1; }
-  .quote-item-row .c-button { grid-column: 1 / -1; }
+  .form-grid > .c-field:nth-child(2), .form-grid > .c-field:last-of-type, .form-grid > .form-actions { grid-column: auto; }
   .c-card-header { flex-direction: column; }
   .c-card-header .c-field { width: 100%; }
   .page-header h1 { font-size: 31px; }
@@ -225,7 +214,6 @@ td.numeric, th:nth-last-child(2) { text-align: right; }
   .stat-card { padding: 12px 10px; }
   .stat-value { font-size: 18px; }
   .c-button { padding-inline: 11px; }
-  .quote-item-row { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {
