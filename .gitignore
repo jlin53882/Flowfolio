@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Environment and local data
+.env
+data/
+*.db
+*.db-shm
+*.db-wal
+backups/
+reports/
+tmp/
+
+# Frontend build and dependencies
+frontend/node_modules/
+frontend/dist/
+frontend/test-results/
+frontend/playwright-report/
+
+# Local legacy data and generated exports
+legacy/two_project/src/data/
+legacy/two_project/src/*.pdf
+legacy/two_project/src/*.csv
+*.pdf
+*.csv
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Secrets and logs
+*.log
+*.pem
+*.key
+
