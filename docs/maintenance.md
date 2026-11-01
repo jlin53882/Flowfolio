@@ -33,3 +33,24 @@ flowchart LR
 4. 若是匯入問題，先讀報告的 source SHA-256、錯誤列與缺圖清單。
 5. 若是資料問題，停止服務並以最近成功備份建立隔離還原環境，不直接覆蓋現場。
 
+## 服務 Log 與 CI 報告
+
+```mermaid
+flowchart LR
+    Start[啟動 PowerShell 腳本] --> ServerLog[reports/server-dev.log 或 server-prod.log]
+    ServerLog --> Health[查看啟動、請求與例外紀錄]
+    Change[推送 Git] --> CI[GitHub Actions]
+    CI --> BackendReport[backend-test-reports]
+    CI --> FrontendReport[frontend-playwright-reports]
+    FrontendReport --> Evidence[HTML、JUnit、diff、trace]
+```
+
+Windows 啟動腳本會把 uvicorn 的標準輸出、錯誤輸出與 access log 同時顯示在終端機，並追加保存到 `reports/`。`reports/` 已加入 `.gitignore`，私人資料與本機執行紀錄不會提交到 Git。
+
+```powershell
+Get-Content .\reports\server-dev.log -Wait
+Get-Content .\reports\server-prod.log -Wait
+```
+
+GitHub Actions 會保留後端 JUnit 測試報告，以及前端 Playwright HTML／JUnit、失敗截圖、差異圖與 trace 14 天。查看 CI 失敗時，先看工作流程摘要，再下載對應的 artifact；不要只依賴短期的 console log。
+

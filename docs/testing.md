@@ -32,7 +32,7 @@ npm run test:e2e
 Set-Location ..
 ```
 
-後端測試涵蓋純計價、統計單位、API CRUD、唯一報價編號、CSV/PDF 產出、圖片路徑邊界與舊資料 dry-run/idempotency。前端 build 確認 Vite 可產出 FastAPI 需要的 `frontend/dist`；Stylelint 檢查 CSS；Playwright 對主要路由與五組 viewport 檢查水平溢位、鍵盤焦點與視覺基準。
+後端測試涵蓋純計價、統計單位、API CRUD、唯一報價編號、CSV/PDF 產出、圖片路徑邊界與舊資料 dry-run/idempotency。前端 build 確認 Vite 可產出 FastAPI 需要的 `frontend/dist`；Stylelint 檢查 CSS；Playwright 對主要路由與五組 viewport 檢查水平溢位、鍵盤焦點與視覺基準。視覺基準固定比較 viewport，避免不同作業系統的整頁高度與捲軸差異造成誤判。
 
 ## 手動 smoke test
 
@@ -77,6 +77,15 @@ uv run pytest -n auto
 `-n auto` 會依目前 CPU 數量建立 worker，適合 CI 與完整回歸測試；測試很少或需要逐步除錯時，使用 `uv run pytest -n 0` 回到單程序。每個測試的資料庫都建立在 pytest 的獨立暫存目錄，不共用正式 `data/flowfolio.db`，因此可以安全平行執行。Playwright 本身已啟用 `fullyParallel`，前端版面與互動案例也會由 Playwright worker 分批執行。
 
 目前後端只有 7 個測試，worker 啟動成本可能高於平行收益；這次仍先把平行策略接入 CI 與標準命令，待測試數量增加後收益會更明顯。需要快速定位單一失敗時，使用 `uv run pytest -n 0` 或 `scripts/windows/run-tests.ps1 -Serial`。
+
+## CI 報告保存
+
+GitHub Actions 會保存以下 artifact 14 天：
+
+- `backend-test-reports`：pytest JUnit XML，方便查看每個後端案例的狀態。
+- `frontend-playwright-reports`：Playwright HTML／JUnit 報告，以及失敗時的 actual、diff、error context 與 trace。
+
+前端視覺測試允許小幅的跨 runner 像素差異，但仍保留版面／水平溢位測試；若差異超過門檻，應下載 artifact 查看 diff，不要直接更新基準圖。
 
 ## 實際瀏覽器 UI／UX 驗收
 
