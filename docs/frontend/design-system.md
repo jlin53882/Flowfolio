@@ -34,7 +34,7 @@ token 定義位於 `frontend/src/styles/main.css` 的 `@layer tokens`。
 | 清單列 | `.list-row`、`.row-main` | 一般、完成、長文字 |
 | 行動導覽 | `.mobile-nav` | 一般、目前路由、safe area |
 | 圖片預覽 | `.image-dialog` | 開啟、關閉、窄視窗內滾動 |
-| 目標卡片 | `.goal-card`、`.goal-progress-track` | 進行中、已達成、手動更新進度 |
+| 目標卡片 | `.goal-card`、`.goal-progress-track` | 進行中、已達成、標記完成與恢復 |
 
 ## 斷點與版面
 

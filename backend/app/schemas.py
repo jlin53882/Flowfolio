@@ -80,9 +80,9 @@ class GoalCreate(StrictModel):
     title: str = Field(min_length=1, max_length=200)
     category: str = Field(default="未分類", min_length=1, max_length=100)
     description: str = Field(default="", max_length=5000)
-    target_value: Decimal = Field(gt=0, le=1_000_000_000)
+    target_value: Decimal = Field(default=Decimal("1"), gt=0, le=1_000_000_000)
     current_value: Decimal = Field(default=Decimal("0"), ge=0, le=1_000_000_000)
-    unit: str = Field(default="次", min_length=1, max_length=40)
+    unit: str = Field(default="項", min_length=1, max_length=40)
     due_date: DateType | None = None
 
 

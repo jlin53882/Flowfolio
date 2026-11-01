@@ -217,11 +217,11 @@ async function renderDashboard(outlet) {
       }
       data.daily.forEach((item) => {
         const title = item.kind === "todo" ? item.title : item.kind === "work" ? item.name : item.kind === "goal" ? item.title : item.piece;
-        const detail = item.kind === "todo" ? `${item.time || "未排時間"}${item.location ? ` · ${item.location}` : ""}` : item.kind === "work" ? `${item.type} · ${money(item.income)}` : item.kind === "goal" ? `${item.current_value} / ${item.target_value} ${item.unit} · ${item.status === "completed" ? "已達成" : "進行中"}` : duration(item.duration_seconds);
+        const detail = item.kind === "todo" ? `${item.time || "未排時間"}${item.location ? ` · ${item.location}` : ""}` : item.kind === "work" ? `${item.type} · ${money(item.income)}` : item.kind === "goal" ? (item.status === "completed" ? "已達成" : "進行中") : duration(item.duration_seconds);
         const row = el("div", { className: `list-row ${item.completed || item.status === "completed" ? "is-done" : ""}` });
         row.append(el("span", { className: `kind-dot ${item.kind}`, text: item.kind === "todo" ? "待" : item.kind === "work" ? "工" : item.kind === "goal" ? "目" : "練" }), el("div", { className: "row-main" }, [el("strong", { text: title }), el("small", { text: detail })]));
         if (item.kind === "todo") row.append(button(item.completed ? "已完成" : "完成", "button ghost small", async () => { await api(`/api/v1/todos/${item.id}`, { method: "PATCH", body: { completed: !item.completed } }); load(); }));
-        if (item.kind === "goal") row.append(button(item.status === "completed" ? "查看目標" : "更新進度", "button ghost small", () => (location.hash = "#/practice")));
+        if (item.kind === "goal") row.append(button("查看目標", "button ghost small", () => (location.hash = "#/practice")));
         dailyList.append(row);
       });
       recentList.replaceChildren();
@@ -322,13 +322,9 @@ function goalForm(editing = null) {
   const fields = [
     field("目標名稱", "text", "title", editing?.title || "", { required: true, placeholder: "例如：完成一本書" }),
     field("目標類別", "text", "category", editing?.category || "學習", { required: true, placeholder: "例如：學習、工作、健康" }),
-    field("目標值", "number", "target_value", editing?.target_value || "1", { required: true, min: 0.001, step: 0.1 }),
-    field("單位", "text", "unit", editing?.unit || "次", { required: true, placeholder: "例如：次、頁、公里" }),
     field("目標日期", "date", "due_date", editing?.due_date || ""),
     field("目標說明", "textarea", "description", editing?.description || "", { rows: 4 }),
   ];
-  if (!editing) fields.splice(2, 0, field("目前進度", "number", "current_value", "0", { min: 0, step: 0.1 }));
-  else fields.splice(2, 0, el("div", { className: "goal-current-note", text: `目前進度：${editing.current_value} ${editing.unit}` }));
   form.append(...fields);
   const actions = el("div", { className: "form-actions" });
   actions.append(button(editing ? "儲存目標" : "建立目標", "button primary", undefined, "submit"));
@@ -346,34 +342,28 @@ function renderGoalCard(item, onChanged) {
   node.append(header);
   if (item.description) node.append(el("p", { className: "goal-description", text: item.description }));
   const meta = el("div", { className: "goal-meta" });
-  meta.append(el("span", { text: item.due_date ? `期限 ${dateText(item.due_date)}` : "未設定期限" }), el("span", { text: `${item.current_value} / ${item.target_value} ${item.unit}` }));
+  meta.append(el("span", { text: item.due_date ? `期限 ${dateText(item.due_date)}` : "未設定期限" }));
   node.append(meta);
   const progress = el("div", { className: "goal-progress-track", role: "progressbar", "aria-label": `${item.title} 進度`, "aria-valuemin": "0", "aria-valuemax": "100", "aria-valuenow": String(item.progress_percent) });
   progress.append(el("div", { className: "goal-progress-bar", style: `width:${item.progress_percent}%` }));
-  node.append(progress, el("div", { className: "goal-progress-values" }, [el("strong", { text: `${item.progress_percent}%` }), el("span", { text: item.status === "completed" ? `完成於 ${dateText(item.completed_at?.slice(0, 10))}` : "持續更新你的進度" })]));
-  if (item.status === "active") {
-    const progressForm = el("form", { className: "goal-progress-form" });
-    progressForm.append(field("更新進度", "number", "current_value", item.current_value, { min: 0, step: 0.1 }), field("進度備註", "text", "note", "", { placeholder: "這次完成了什麼？" }), button("更新進度", "button secondary small", undefined, "submit"));
-    progressForm.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      try {
-        await api(`/api/v1/goals/${item.id}/progress`, { method: "POST", body: { current_value: getValue(progressForm, '[name="current_value"]'), record_date: today(), note: getValue(progressForm, '[name="note"]') } });
-        toast("目標進度已更新");
-        await onChanged();
-      } catch (error) { toast(formatError(error), "error"); }
-    });
-    node.append(progressForm);
-  }
+  node.append(progress, el("div", { className: "goal-progress-values" }, [el("span", { text: item.status === "completed" ? `完成於 ${dateText(item.completed_at?.slice(0, 10))}` : "尚未達成" })]));
+  const updateStatus = async (completed) => {
+    try {
+      await api(`/api/v1/goals/${item.id}/progress`, { method: "POST", body: { current_value: completed ? item.target_value : "0", record_date: today(), note: completed ? "標記為已達成" : "恢復進行中" } });
+      toast(completed ? "目標已達成" : "目標已恢復進行中");
+      await onChanged();
+    } catch (error) { toast(formatError(error), "error"); }
+  };
   const actions = el("div", { className: "actions goal-actions" });
-  actions.append(button("編輯", "button ghost small", () => { state.goalEditing = item; renderShell(); }), button("刪除", "button danger small", async () => { if (!confirm("確定要刪除這個目標與進度紀錄嗎？")) return; try { await api(`/api/v1/goals/${item.id}`, { method: "DELETE" }); toast("目標已刪除"); await onChanged(); } catch (error) { toast(formatError(error), "error"); } }));
+  actions.append(button(item.status === "completed" ? "恢復進行中" : "標記已達成", "button secondary small", () => updateStatus(item.status !== "completed")), button("編輯", "button ghost small", () => { state.goalEditing = item; renderShell(); }), button("刪除", "button danger small", async () => { if (!confirm("確定要刪除這個目標與進度紀錄嗎？")) return; try { await api(`/api/v1/goals/${item.id}`, { method: "DELETE" }); toast("目標已刪除"); await onChanged(); } catch (error) { toast(formatError(error), "error"); } }));
   node.append(actions);
   return node;
 }
 
 async function renderGoals(outlet) {
-  const frame = pageFrame("Goals", "目標進度", "不限鋼琴，手動追蹤學習、工作、健康與生活中的各種目標。");
+  const frame = pageFrame("Goals", "目標進度", "不限鋼琴，建立學習、工作、健康與生活中的各種目標。");
   const layout = el("div", { className: "goal-layout" });
-  const editor = card(state.goalEditing ? "編輯目標" : "建立新目標", "設定目標值後，隨時手動更新目前進度。");
+  const editor = card(state.goalEditing ? "編輯目標" : "建立新目標", "設定名稱、類別與日期，完成後可標記為已達成。");
   editor.append(goalForm(state.goalEditing));
   const activeCard = card("進行中目標", "還在持續累積的目標。");
   const activeList = el("div", { className: "goal-list" });
@@ -389,8 +379,7 @@ async function renderGoals(outlet) {
   const form = frame.querySelector("#goal-form");
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const body = { title: getValue(form, '[name="title"]'), category: getValue(form, '[name="category"]'), target_value: getValue(form, '[name="target_value"]'), unit: getValue(form, '[name="unit"]'), due_date: getValue(form, '[name="due_date"]') || null, description: getValue(form, '[name="description"]') };
-    if (!state.goalEditing) body.current_value = getValue(form, '[name="current_value"]') || "0";
+    const body = { title: getValue(form, '[name="title"]'), category: getValue(form, '[name="category"]'), due_date: getValue(form, '[name="due_date"]') || null, description: getValue(form, '[name="description"]') };
     try { await api(state.goalEditing ? `/api/v1/goals/${state.goalEditing.id}` : "/api/v1/goals", { method: state.goalEditing ? "PATCH" : "POST", body }); toast(state.goalEditing ? "目標已更新" : "目標已建立"); state.goalEditing = null; renderShell(); } catch (error) { toast(formatError(error), "error"); }
   });
 

@@ -61,8 +61,8 @@ test("總覽指定日期的安排包含目標並提供進度入口", async ({ pa
   await page.goto("/#/dashboard");
   await expect(page.getByRole("heading", { name: "指定日期的安排", exact: true })).toBeVisible();
   await expect(page.getByText("完成閱讀計畫", { exact: true })).toBeVisible();
-  await expect(page.getByText("3 / 10 本 · 進行中", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "更新進度", exact: true })).toBeVisible();
+  await expect(page.getByText("進行中", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "查看目標", exact: true })).toBeVisible();
 });
 
 test("目標頁面顯示進行中與已達成且不含計時器", async ({ page }) => {
@@ -72,6 +72,10 @@ test("目標頁面顯示進行中與已達成且不含計時器", async ({ page 
   await expect(page.getByRole("heading", { name: "進行中目標", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "已達成", exact: true })).toBeVisible();
   await expect(page.locator(".goal-card")).toHaveCount(2);
+  await expect(page.getByLabel("目前進度", { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel("目標值", { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel("單位", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "標記已達成", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "開始練習", exact: true })).toHaveCount(0);
   await expect(page.getByText("計時中", { exact: true })).toHaveCount(0);
 });

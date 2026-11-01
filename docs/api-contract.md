@@ -40,5 +40,7 @@
 | GET | `/api/v1/maintenance/export` | JSON 資料匯出 |
 | POST | `/api/v1/maintenance/backup` | SQLite Online Backup + 媒體壓縮備份 |
 
+目標頁面的建立表單只送出名稱、類別、日期與說明；`target_value`、`current_value`、`unit` 未提供時由後端使用 1、0、`項` 作為內部預設。前端以標記已達成或恢復進行中操作維持狀態，數值欄位仍保留給既有資料與 API 相容使用。
+
 圖片上傳單檔上限 8 MB、最大尺寸 8000px；伺服器會驗證實際圖片內容，不接受 SVG 或任意路徑。下載使用 `Content-Disposition`。
 

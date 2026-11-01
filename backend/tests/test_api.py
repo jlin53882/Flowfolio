@@ -99,6 +99,15 @@ def test_goal_progress_can_be_manually_updated_and_completed(client):
     assert created.json()["progress_percent"] == 25
     goal_id = created.json()["id"]
 
+    simple = client.post(
+        "/api/v1/goals",
+        json={"title": "整理生活清單", "category": "生活", "due_date": "2026-12-01"},
+    )
+    assert simple.status_code == 201
+    assert simple.json()["current_value"] == "0"
+    assert simple.json()["target_value"] == "1"
+    assert simple.json()["unit"] == "項"
+
     progressed = client.post(
         f"/api/v1/goals/{goal_id}/progress",
         json={"current_value": "10", "record_date": "2026-11-03", "note": "完成最後一本"},

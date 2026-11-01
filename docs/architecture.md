@@ -40,17 +40,17 @@ flowchart LR
 
 目前前端已移除報價工作台與導覽入口；報價服務、匯出與資料表先保留，讓既有資料和工作紀錄外鍵維持相容。直接開啟舊的 `#/quotes` 路徑會回到總覽。
 
-目標頁面的流程是：建立目標 → 設定目標值與單位 → 手動更新目前進度 → 達到目標值後自動標記已達成。目標進度與每次更新備註分開保存，頁面不依賴計時器，也不限於鋼琴或其他單一活動。
+目標頁面的流程是：建立目標 → 設定名稱、類別與日期 → 標記已達成 → 必要時恢復進行中。數值進度仍由後端保留作為既有 API 與資料相容欄位，前端不要求輸入目前進度、目標值或單位；頁面不依賴計時器，也不限於鋼琴或其他單一活動。
 
 ```mermaid
 flowchart LR
     Form[建立目標] --> Goal[(goals)]
     Goal --> Active[進行中目標]
-    Active --> Update[手動更新進度]
-    Update --> Log[(goal_progress_logs)]
-    Update --> Check{目前值達到目標值？}
-    Check -- 否 --> Active
-    Check -- 是 --> Completed[已達成]
+    Active --> Complete[標記已達成]
+    Complete --> Log[(goal_progress_logs)]
+    Complete --> Completed[已達成]
+    Completed --> Reopen[恢復進行中]
+    Reopen --> Active
 ```
 
 ## 目錄與邊界
