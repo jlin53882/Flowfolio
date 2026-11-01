@@ -59,3 +59,10 @@ test("手機版導覽與鍵盤焦點可用", async ({ page }) => {
   await page.keyboard.press("Tab");
   await expect(page.locator(":focus")).toBeVisible();
 });
+
+test("桌面與手機導覽都提供中文可理解名稱", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/#/dashboard");
+  await expect(page.locator(".sidebar-nav a[aria-label]")).toHaveCount(8);
+  await expect(page.locator(".mobile-nav a[aria-label]")).toHaveCount(8);
+});

@@ -34,7 +34,7 @@ function el(tag, props = {}, children = []) {
     else if (key === "text") node.textContent = value;
     else if (key === "htmlFor") node.htmlFor = value;
     else if (key === "dataset") Object.assign(node.dataset, value);
-    else if (key.startsWith("on") && typeof value === "function") node.addEventListener(key.slice(2), value);
+    else if (key.startsWith("on") && typeof value === "function") node.addEventListener(key.slice(2).toLowerCase(), value);
     else if (value !== undefined && value !== null) node.setAttribute(key, value);
   });
   for (const child of Array.isArray(children) ? children : [children]) {
@@ -157,7 +157,7 @@ function renderShell() {
   const sidebarNav = app.querySelector(".sidebar-nav");
   const mobileNav = app.querySelector(".mobile-nav");
   navItems.forEach(([key, label, icon]) => {
-    const link = el("a", { className: `nav-link ${active === key ? "active" : ""}`, href: `#/${key}` });
+    const link = el("a", { className: `nav-link ${active === key ? "active" : ""}`, href: `#/${key}`, "aria-label": label, title: label });
     link.append(el("span", { className: "nav-icon", text: icon }), el("span", { text: label }));
     sidebarNav.append(link);
     const mobileLink = el("a", { className: active === key ? "active" : "", href: `#/${key}`, "aria-label": label });
