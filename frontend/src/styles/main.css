@@ -3,7 +3,9 @@
 @layer tokens {
 :root {
   color-scheme: light;
-  font-family: "Noto Sans TC", "Microsoft JhengHei", system-ui, -apple-system, sans-serif;
+  --font-ui: "標楷體", "DFKai-SB", "BiauKai", serif;
+
+  font-family: var(--font-ui);
   color: #19323a;
   background: #f5f7f6;
   font-synthesis: none;

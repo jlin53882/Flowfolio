@@ -18,6 +18,7 @@ token 定義位於 `frontend/src/styles/main.css` 的 `@layer tokens`。
 | 顏色 | `--color-text`、`--color-text-muted` | 主要與次要文字 |
 | 顏色 | `--color-border` | 邊界、表格分隔線 |
 | 顏色 | `--color-focus` | 鍵盤焦點提示 |
+| 字體 | `--font-ui` | 全站中文介面使用標楷體，並提供 Windows 與襯線 fallback |
 | 間距 | `--space-1` 至 `--space-6` | 4px 基準的間距階梯 |
 | 圓角 | `--radius-sm`、`--radius-md`、`--radius-lg` | 控制項、卡片與容器 |
 | 動態 | `--motion-fast`、`--motion-normal` | 一般 transition 時間 |
