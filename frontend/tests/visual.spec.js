@@ -23,7 +23,8 @@ const dashboardScreenshotOptions = {
   animations: "disabled",
   caret: "hide",
   fullPage: false,
-  maxDiffPixelRatio: 0.06,
+  // 漸層變亮與全站粗體會讓不同 Windows 字型渲染器產生少量像素差異，仍保留嚴格的版面回歸檢查。
+  maxDiffPixelRatio: 0.08,
 };
 
 test("總覽頁手機版視覺基準", async ({ page }) => {
