@@ -23,7 +23,7 @@ flowchart TD
 ## 可執行命令
 
 ```powershell
-uv run pytest
+uv run pytest -n auto
 uv run ruff check backend
 Set-Location frontend
 npm run build
@@ -55,7 +55,8 @@ Set-Location ..
 
 | 檢查 | 結果 |
 | --- | --- |
-| `uv run pytest` | 7 passed |
+| `uv run pytest -n auto` | 7 passed；使用 pytest-xdist 平行 worker |
+| `scripts/windows/run-tests.ps1 -Serial` | 7 passed；單程序除錯模式 |
 | `uv run ruff check backend` | 通過 |
 | `npm run lint:css` | 通過 |
 | `npm run build` | 通過 |
@@ -64,6 +65,18 @@ Set-Location ..
 | 舊資料匯入重跑 | 第一次匯入 1 筆作品與 2 張圖片；第二次跳過既有資料 |
 
 Playwright 測試使用固定的繁體中文 locale、台北時區與測試 API 資料；真實服務巡檢則連線到 `http://127.0.0.1:8000`，不會把測試資料寫入正式資料庫。
+
+## 平行測試策略
+
+後端使用 `pytest-xdist` 批量分配測試：
+
+```powershell
+uv run pytest -n auto
+```
+
+`-n auto` 會依目前 CPU 數量建立 worker，適合 CI 與完整回歸測試；測試很少或需要逐步除錯時，使用 `uv run pytest -n 0` 回到單程序。每個測試的資料庫都建立在 pytest 的獨立暫存目錄，不共用正式 `data/flowfolio.db`，因此可以安全平行執行。Playwright 本身已啟用 `fullyParallel`，前端版面與互動案例也會由 Playwright worker 分批執行。
+
+目前後端只有 7 個測試，worker 啟動成本可能高於平行收益；這次仍先把平行策略接入 CI 與標準命令，待測試數量增加後收益會更明顯。需要快速定位單一失敗時，使用 `uv run pytest -n 0` 或 `scripts/windows/run-tests.ps1 -Serial`。
 
 ## 實際瀏覽器 UI／UX 驗收
 

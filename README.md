@@ -65,7 +65,7 @@ uv run python backend/scripts/legacy_import.py `
 ## 測試與品質檢查
 
 ```powershell
-uv run pytest
+uv run pytest -n auto
 uv run ruff check backend
 Set-Location frontend
 npm run build
@@ -75,6 +75,8 @@ Set-Location ..
 ```
 
 `docs/testing.md` 說明目前已執行的檢查與尚未安裝的瀏覽器 E2E；未執行的檢查不會被標示為通過。
+
+後端測試已加入 `pytest-xdist`。一般執行使用 `uv run pytest -n auto`，會依可用 CPU 平行分配測試；需要逐步除錯時可使用 `uv run pytest -n 0`。Windows 也可以執行 `.\scripts\windows\run-tests.ps1`，並以 `-Serial` 切換成單程序。
 
 ## Git
 
