@@ -13,7 +13,7 @@ async function mockApi(page) {
         completed_goals: 1,
         completion_rate: 0,
         date: "2026-11-01",
-        daily: [],
+        daily: [{ kind: "goal", id: "goal-daily", title: "完成閱讀計畫", current_value: "3", target_value: "10", unit: "本", status: "active", completed: false }],
         recent: [],
       };
     } else if (url.pathname.endsWith("/goals")) {
@@ -54,6 +54,15 @@ test("已移除的報價舊路由會回到總覽", async ({ page }) => {
   await expect(page).toHaveURL(/#\/dashboard$/);
   await expect(page.locator("#page h1")).toContainText("把工作、目標與生活放在同一個節奏裡");
   await expect(page.getByRole("link", { name: "報價", exact: true })).toHaveCount(0);
+});
+
+test("總覽指定日期的安排包含目標並提供進度入口", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/#/dashboard");
+  await expect(page.getByRole("heading", { name: "指定日期的安排", exact: true })).toBeVisible();
+  await expect(page.getByText("完成閱讀計畫", { exact: true })).toBeVisible();
+  await expect(page.getByText("3 / 10 本 · 進行中", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "更新進度", exact: true })).toBeVisible();
 });
 
 test("目標頁面顯示進行中與已達成且不含計時器", async ({ page }) => {

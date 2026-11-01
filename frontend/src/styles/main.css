@@ -96,7 +96,7 @@ h3 { font-size: 15px; margin: 0; }
 .row-main strong { display: block; overflow-wrap: anywhere; font-size: 13px; }
 .row-main small, .table-note { display: block; color: var(--muted); font-size: 11px; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .kind-dot { flex: 0 0 29px; width: 29px; height: 29px; border-radius: 9px; display: grid; place-items: center; color: white; font-size: 11px; font-weight: 800; }
-.kind-dot.todo { background: #d06b86; } .kind-dot.work { background: var(--amber); } .kind-dot.practice { background: var(--blue); }
+.kind-dot.todo { background: #d06b86; } .kind-dot.work { background: var(--amber); } .kind-dot.practice { background: var(--blue); } .kind-dot.goal { background: var(--violet); }
 .empty-state { border: 1px dashed #cbdad7; border-radius: 13px; padding: 28px 16px; text-align: center; color: var(--muted); }
 .empty-icon { font-size: 26px; color: #98b3ae; margin-bottom: 8px; }
 .empty-state h3 { color: #536b6d; margin-bottom: 14px; }

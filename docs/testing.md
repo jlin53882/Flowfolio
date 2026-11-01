@@ -55,11 +55,11 @@ Set-Location ..
 | 檢查 | 結果 |
 | --- | --- |
 | `uv run pytest -n auto` | 8 passed；使用 pytest-xdist 平行 worker |
-| `scripts/windows/run-tests.ps1 -Serial` | 7 passed；單程序除錯模式 |
+| `scripts/windows/run-tests.ps1 -Serial` | 8 passed；單程序除錯模式 |
 | `uv run ruff check backend` | 通過 |
 | `npm run lint:css` | 通過 |
 | `npm run build` | 通過 |
-| `npm run test:e2e` | 42 passed；含 35 個路由版面測試、2 個導覽／焦點測試、3 個 UI 互動測試與 2 個視覺基準測試 |
+| `npm run test:e2e` | 43 passed；含 35 個路由版面測試、2 個導覽／焦點測試、4 個 UI 互動測試與 2 個視覺基準測試 |
 | 真實 FastAPI 服務巡檢 | 7 個路由、390px、無水平溢位 |
 | 舊資料匯入重跑 | 第一次匯入 1 筆作品與 2 張圖片；第二次跳過既有資料 |
 
@@ -75,7 +75,7 @@ uv run pytest -n auto
 
 `-n auto` 會依目前 CPU 數量建立 worker，適合 CI 與完整回歸測試；測試很少或需要逐步除錯時，使用 `uv run pytest -n 0` 回到單程序。每個測試的資料庫都建立在 pytest 的獨立暫存目錄，不共用正式 `data/flowfolio.db`，因此可以安全平行執行。Playwright 本身已啟用 `fullyParallel`，前端版面與互動案例也會由 Playwright worker 分批執行。
 
-目前後端只有 7 個測試，worker 啟動成本可能高於平行收益；這次仍先把平行策略接入 CI 與標準命令，待測試數量增加後收益會更明顯。需要快速定位單一失敗時，使用 `uv run pytest -n 0` 或 `scripts/windows/run-tests.ps1 -Serial`。
+目前後端有 8 個測試，worker 啟動成本可能高於平行收益；這次仍先把平行策略接入 CI 與標準命令，待測試數量增加後收益會更明顯。需要快速定位單一失敗時，使用 `uv run pytest -n 0` 或 `scripts/windows/run-tests.ps1 -Serial`。
 
 ## CI 報告保存
 
@@ -90,7 +90,7 @@ GitHub Actions 會保存以下 artifact 14 天：
 
 本次最後修改後，使用瀏覽器連線到 `http://127.0.0.1:8000` 進行人工操作，結果如下：
 
-- 總覽：日期與月份欄位、統計卡片、重新整理按鈕與空狀態可見；重新整理後統計仍正常顯示。
+- 總覽：日期與月份欄位、統計卡片、重新整理按鈕與空狀態可見；指定日期若有到期目標，會顯示進度與「更新進度」入口。
 - 工作紀錄：中文欄位標籤、收入／工時輸入與工作類型下拉選單可操作；沒有送出測試資料。
 - 舊報價路由：直接開啟 `#/quotes` 會導回總覽，桌面與手機導覽都不再顯示報價入口；後端報價 API 與資料表保留相容性。
 - 作品集：已匯入的作品與 2 張圖片可見；點擊縮圖可開啟 dialog，點擊「關閉」後 dialog 數量回到 0。

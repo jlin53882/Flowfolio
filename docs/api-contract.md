@@ -18,7 +18,7 @@
 | 方法 | 路徑 | 用途 |
 | --- | --- | --- |
 | GET | `/health` | 非敏感健康檢查 |
-| GET | `/api/v1/dashboard?month=YYYY-MM&selected_date=YYYY-MM-DD` | 收入、工作、練習、完成率與指定日清單 |
+| GET | `/api/v1/dashboard?month=YYYY-MM&selected_date=YYYY-MM-DD` | 收入、工作、目標、完成率與指定日清單；目標依 `due_date` 納入 |
 | GET/POST | `/api/v1/works` | 工作列表與新增 |
 | GET/PATCH/DELETE | `/api/v1/works/{id}` | 工作單筆操作 |
 | GET/POST | `/api/v1/todos` | 待辦列表與新增；可用 `on_date` 篩選 |

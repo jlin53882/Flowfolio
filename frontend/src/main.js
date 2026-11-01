@@ -182,7 +182,7 @@ async function renderDashboard(outlet) {
   frame.querySelector(".page-header").append(controls);
   const stats = el("div", { className: "stats-grid" });
   const body = el("div", { className: "dashboard-grid" });
-  const dailyCard = card("指定日期的安排", "待辦、工作與練習各自保留來源。");
+  const dailyCard = card("指定日期的安排", "待辦、工作與目標依指定日期顯示。");
   const recentCard = card("最近活動", "依建立時間顯示最近 8 筆紀錄。");
   const dailyList = el("div", { className: "stack-list" });
   const recentList = el("div", { className: "stack-list" });
@@ -202,18 +202,26 @@ async function renderDashboard(outlet) {
       const data = await api(`/api/v1/dashboard?month=${encodeURIComponent(state.month)}&selected_date=${state.date}`);
       stats.replaceChildren(
         statCard("本月收入", money(data.income), "工作紀錄收入合計", "teal"),
-        statCard("本月工作時數", hours(data.work_minutes), "不含練琴時間", "blue"),
+        statCard("本月工作時數", hours(data.work_minutes), "工作紀錄時間合計", "blue"),
         statCard("進行中目標", data.active_goals ?? 0, "尚未達成的目標", "violet"),
         statCard("當日完成率", `${data.completion_rate}%`, `${data.date} 的已完成項目`, "amber"),
       );
       dailyList.replaceChildren();
-      if (!data.daily.length) dailyList.append(emptyState("這一天還沒有安排", button("新增待辦", "button primary small", () => (location.hash = "#/todos"))));
+      if (!data.daily.length) {
+        const emptyActions = el("div", { className: "actions empty-actions" });
+        emptyActions.append(
+          button("新增待辦", "button primary small", () => (location.hash = "#/todos")),
+          button("新增目標", "button secondary small", () => (location.hash = "#/practice")),
+        );
+        dailyList.append(emptyState("這一天還沒有安排", emptyActions));
+      }
       data.daily.forEach((item) => {
-        const title = item.kind === "todo" ? item.title : item.kind === "work" ? item.name : item.piece;
-        const detail = item.kind === "todo" ? `${item.time || "未排時間"}${item.location ? ` · ${item.location}` : ""}` : item.kind === "work" ? `${item.type} · ${money(item.income)}` : duration(item.duration_seconds);
-        const row = el("div", { className: `list-row ${item.completed ? "is-done" : ""}` });
-        row.append(el("span", { className: `kind-dot ${item.kind}`, text: item.kind === "todo" ? "待" : item.kind === "work" ? "工" : "練" }), el("div", { className: "row-main" }, [el("strong", { text: title }), el("small", { text: detail })]));
+        const title = item.kind === "todo" ? item.title : item.kind === "work" ? item.name : item.kind === "goal" ? item.title : item.piece;
+        const detail = item.kind === "todo" ? `${item.time || "未排時間"}${item.location ? ` · ${item.location}` : ""}` : item.kind === "work" ? `${item.type} · ${money(item.income)}` : item.kind === "goal" ? `${item.current_value} / ${item.target_value} ${item.unit} · ${item.status === "completed" ? "已達成" : "進行中"}` : duration(item.duration_seconds);
+        const row = el("div", { className: `list-row ${item.completed || item.status === "completed" ? "is-done" : ""}` });
+        row.append(el("span", { className: `kind-dot ${item.kind}`, text: item.kind === "todo" ? "待" : item.kind === "work" ? "工" : item.kind === "goal" ? "目" : "練" }), el("div", { className: "row-main" }, [el("strong", { text: title }), el("small", { text: detail })]));
         if (item.kind === "todo") row.append(button(item.completed ? "已完成" : "完成", "button ghost small", async () => { await api(`/api/v1/todos/${item.id}`, { method: "PATCH", body: { completed: !item.completed } }); load(); }));
+        if (item.kind === "goal") row.append(button(item.status === "completed" ? "查看目標" : "更新進度", "button ghost small", () => (location.hash = "#/practice")));
         dailyList.append(row);
       });
       recentList.replaceChildren();

@@ -32,13 +32,29 @@ def test_work_todo_practice_and_dashboard(client):
         json={"date": "2026-11-02", "title": "寄出檔案", "time": "14:30", "location": "家"},
     )
     assert todo.status_code == 201
+    goal = client.post(
+        "/api/v1/goals",
+        json={
+            "title": "完成閱讀計畫",
+            "category": "學習",
+            "target_value": "10",
+            "current_value": "3",
+            "unit": "本",
+            "due_date": "2026-11-02",
+        },
+    )
+    assert goal.status_code == 201
     dashboard = client.get("/api/v1/dashboard?month=2026-11&selected_date=2026-11-02")
     assert dashboard.status_code == 200
     body = dashboard.json()
     assert body["income"] == "12000"
     assert body["work_minutes"] == 150
     assert body["practice_seconds"] == 1800
-    assert body["completion_rate"] == 33
+    assert body["completion_rate"] == 25
+    goal_items = [item for item in body["daily"] if item["kind"] == "goal"]
+    assert len(goal_items) == 1
+    assert goal_items[0]["title"] == "完成閱讀計畫"
+    assert goal_items[0]["current_value"] == "3"
 
 
 def test_quote_unique_number_duplicate_and_exports(client):

@@ -681,8 +681,16 @@ def dashboard(db: Session, month: str, selected_date: date) -> dict[str, Any]:
         .where(PracticeRecord.date == selected_date)
         .order_by(PracticeRecord.created_at.desc())
     ).all()
+    day_goals = db.scalars(
+        select(Goal)
+        .options(selectinload(Goal.progress_logs))
+        .where(Goal.due_date == selected_date)
+        .order_by(Goal.status.asc(), Goal.created_at.desc())
+    ).all()
     day_total = len(todos) + len(day_works) + len(day_practice)
+    day_total += len(day_goals)
     day_completed = sum(item.completed for item in todos + day_works + day_practice)
+    day_completed += sum(item.status == "completed" for item in day_goals)
     recent_work = db.scalars(
         select(WorkRecord).order_by(WorkRecord.created_at.desc()).limit(5)
     ).all()
@@ -716,6 +724,7 @@ def dashboard(db: Session, month: str, selected_date: date) -> dict[str, Any]:
         [{"kind": "todo", **todo_to_dict(item)} for item in todos]
         + [{"kind": "work", **work_to_dict(item)} for item in day_works]
         + [{"kind": "practice", **practice_to_dict(item)} for item in day_practice]
+        + [{"kind": "goal", **goal_to_dict(item)} for item in day_goals]
     )
     return {
         "month": month,
