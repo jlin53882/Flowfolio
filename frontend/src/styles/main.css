@@ -65,8 +65,8 @@ strong, h1, h2, h3 { overflow-wrap: anywhere; }
 
 .app-shell { min-height: 100vh; display: flex; }
 .sidebar { width: 246px; background: linear-gradient(180deg, rgba(20, 44, 74, .82), rgba(30, 70, 107, .72)); color: #e6f0fc; padding: 28px 18px; display: flex; flex-direction: column; position: fixed; inset: 0 auto 0 0; z-index: 4; backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
-.brand { display: flex; align-items: center; gap: 11px; padding: 4px 10px 34px; }
-.brand-mark { width: 74px; height: 39px; border: 0; border-radius: 14px; display: grid; place-items: center; overflow: hidden; padding: 0; background: rgba(255, 255, 255, .9); color: #1b4778; }
+.brand { display: flex; align-items: center; gap: 13px; padding: 4px 10px 34px; }
+.brand-mark { width: 98px; height: 54px; border: 0; border-radius: 16px; display: grid; place-items: center; overflow: hidden; padding: 0; background: rgba(255, 255, 255, .9); color: #1b4778; }
 .brand-mark img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .brand strong { display: block; color: white; font-size: 18px; letter-spacing: .02em; }
 .brand small { color: #a6bed9; font-size: 11px; }
@@ -202,7 +202,7 @@ td.numeric, th:nth-last-child(2) { text-align: right; }
   .sidebar { width: 74px; padding: 20px 10px; align-items: center; }
   .brand { padding: 4px 0 25px; }
   .brand > div, .sidebar-footer span:last-child { display: none; }
-  .brand-mark { width: 42px; height: 42px; padding: 5px 4px; }
+  .brand-mark { width: 50px; height: 50px; }
   .nav-link { justify-content: center; padding: 12px 8px; }
   .nav-link span:last-child { display: none; }
   .sidebar-footer { padding: 8px; }
