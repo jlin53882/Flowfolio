@@ -2,7 +2,7 @@
 
 ## 原則
 
-移轉只從指定來源讀取；不修改 `two_project` 的 JSON、圖片、PDF 或 CSV。每次來源先計算 SHA-256，報告保存來源摘要。資料表保存來源檔案指紋、類別、原始序位與內容摘要，因此同一份來源重跑不會重複插入。
+移轉只從使用者指定的外部來源讀取；不修改來源的 JSON、圖片、PDF 或 CSV。每次來源先計算 SHA-256，報告保存來源摘要。資料表保存來源檔案指紋、類別、原始序位與內容摘要，因此同一份來源重跑不會重複插入。
 
 ## 匯入流程圖
 
@@ -27,9 +27,13 @@ flowchart TD
 ## 預覽
 
 ```powershell
+$legacyRoot = Resolve-Path '..\two_project'
+$legacySource = Join-Path $legacyRoot 'src\data\records.json'
+$legacyMediaRoot = Join-Path $legacyRoot 'src\data\picture'
+
 uv run python backend/scripts/legacy_import.py --dry-run `
-  --source 'C:\Users\Sarah Wang\Desktop\two_project\src\data\records.json' `
-  --media-root 'C:\Users\Sarah Wang\Desktop\two_project\src\data\picture' `
+  --source $legacySource `
+  --media-root $legacyMediaRoot `
   --report reports\legacy-import-dry-run.json
 ```
 
@@ -41,8 +45,8 @@ uv run python backend/scripts/legacy_import.py --dry-run `
 
 ```powershell
 uv run python backend/scripts/legacy_import.py --apply `
-  --source 'C:\Users\Sarah Wang\Desktop\two_project\src\data\records.json' `
-  --media-root 'C:\Users\Sarah Wang\Desktop\two_project\src\data\picture' `
+  --source $legacySource `
+  --media-root $legacyMediaRoot `
   --report reports\legacy-import-apply.json
 ```
 
@@ -50,5 +54,5 @@ uv run python backend/scripts/legacy_import.py --apply `
 
 ## 回復
 
-移轉前先建立新資料目錄的備份；要撤回新網站資料時停止服務、保留報告與備份，再移除或改用另一個 `FLOWFOLIO_DATA_DIR`。不對原 `two_project` 做覆蓋式還原。
+移轉前先建立新資料目錄的備份；要撤回新網站資料時停止服務、保留報告與備份，再移除或改用另一個 `FLOWFOLIO_DATA_DIR`。不對外部來源做覆蓋式還原。
 

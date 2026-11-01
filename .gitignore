@@ -23,9 +23,7 @@ frontend/test-results/
 frontend/playwright-report/
 
 # Local legacy data and generated exports
-legacy/two_project/src/data/
-legacy/two_project/src/*.pdf
-legacy/two_project/src/*.csv
+legacy/
 *.pdf
 *.csv
 

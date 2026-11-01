@@ -9,7 +9,7 @@
 ## 執行方式
 
 ```powershell
-Set-Location 'C:\Users\Sarah Wang\Desktop\Flowfolio\frontend'
+Set-Location frontend
 npm install
 npm run lint:css
 npm run build

@@ -1,8 +1,8 @@
 # Flowfolio｜工作與練習管理網站
 
-Flowfolio 是從桌面上的 Flet `two_project` 重構而來的單人、私人本機網站。它把接案工作、待辦、報價、作品、練習、分析與資料維護放在同一個可長期維護的模組化單體中。
+Flowfolio 是單人、私人本機的工作與練習管理網站。它把接案工作、待辦、報價、作品、練習、分析與資料維護放在同一個可長期維護的模組化單體中。
 
-本專案與 `C:\Users\Sarah Wang\Desktop\two_project` 完全分開。原專案只放在 `legacy/two_project` 作唯讀對照，原始 `records.json`、圖片與既有輸出檔不會被覆寫或刪除。
+本儲存庫不包含任何個人舊專案副本、資料庫、圖片或匯出檔。若要移轉既有資料，請在本機以外部來源路徑執行匯入工具；來源只讀取，不會被覆寫或刪除。
 
 ## 技術決策
 
@@ -17,7 +17,6 @@ Flowfolio 是從桌面上的 Flet `two_project` 重構而來的單人、私人�
 在 PowerShell 執行：
 
 ```powershell
-Set-Location 'C:\Users\Sarah Wang\Desktop\Flowfolio'
 uv sync
 Set-Location frontend
 npm install
@@ -40,23 +39,29 @@ uv run uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --wor
 
 ## 舊資料匯入
 
+以下範例假設舊資料夾與 Flowfolio 位於同一層；若來源在其他位置，只需修改三個變數，不要把個人絕對路徑寫進 Git。
+
 先做預覽，不會寫入資料庫或圖片目錄：
 
 ```powershell
+$legacyRoot = Resolve-Path '..\two_project'
+$legacySource = Join-Path $legacyRoot 'src\data\records.json'
+$legacyMediaRoot = Join-Path $legacyRoot 'src\data\picture'
+
 uv run python backend/scripts/legacy_import.py `
   --dry-run `
-  --source 'C:\Users\Sarah Wang\Desktop\two_project\src\data\records.json' `
-  --media-root 'C:\Users\Sarah Wang\Desktop\two_project\src\data\picture' `
+  --source $legacySource `
+  --media-root $legacyMediaRoot `
   --report 'reports\legacy-import-dry-run.json'
 ```
 
-確認報告後，才執行正式匯入。資料會寫入新專案的 `data`，原始專案不會變更：
+確認報告後，才執行正式匯入。資料會寫入本專案的 `data`，外部來源保持不變：
 
 ```powershell
 uv run python backend/scripts/legacy_import.py `
   --apply `
-  --source 'C:\Users\Sarah Wang\Desktop\two_project\src\data\records.json' `
-  --media-root 'C:\Users\Sarah Wang\Desktop\two_project\src\data\picture' `
+  --source $legacySource `
+  --media-root $legacyMediaRoot `
   --report 'reports\legacy-import-apply.json'
 ```
 
@@ -84,7 +89,6 @@ Set-Location ..
 
 ## 文件導覽
 
-- `docs/legacy-inventory.md`：原 Flet 專案的實際盤點。
 - `docs/architecture.md`：模組依賴、資料流與不採用的基礎設施。
 - `docs/data-model.md`、`docs/api-contract.md`：資料單位與 API 契約。
 - `docs/data-migration.md`：舊資料預覽、匯入、重跑與回復策略。

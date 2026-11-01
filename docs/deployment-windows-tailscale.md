@@ -3,7 +3,6 @@
 ## 開發啟動
 
 ```powershell
-Set-Location 'C:\Users\Sarah Wang\Desktop\Flowfolio'
 uv sync
 Set-Location frontend
 npm install
