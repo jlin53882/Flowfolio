@@ -141,7 +141,7 @@ function renderShell() {
   app.innerHTML = `
     <div class="app-shell">
       <aside class="sidebar">
-        <div class="brand"><span class="brand-mark">F</span><div><strong>Flowfolio</strong><small>工作與目標節奏</small></div></div>
+        <div class="brand"><span class="brand-mark"><img src="/assets/flowfolio-logo.png" alt="Flowfolio 標誌" /></span><div><strong>Flowfolio</strong><small>工作與目標節奏</small></div></div>
         <nav class="sidebar-nav" aria-label="主要導覽"></nav>
         <div class="sidebar-footer"><span class="status-dot"></span><span>私人本機模式</span></div>
       </aside>

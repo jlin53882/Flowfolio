@@ -63,7 +63,8 @@ strong, h1, h2, h3 { overflow-wrap: anywhere; }
 .app-shell { min-height: 100vh; display: flex; }
 .sidebar { width: 246px; background: linear-gradient(180deg, rgba(20, 44, 74, .82), rgba(30, 70, 107, .72)); color: #e6f0fc; padding: 28px 18px; display: flex; flex-direction: column; position: fixed; inset: 0 auto 0 0; z-index: 4; backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
 .brand { display: flex; align-items: center; gap: 11px; padding: 4px 10px 34px; }
-.brand-mark { width: 39px; height: 39px; border-radius: 13px; display: grid; place-items: center; background: rgba(230, 239, 252, .88); color: #1b4778; font-weight: 800; font-size: 20px; }
+.brand-mark { width: 39px; height: 39px; border: 1px solid rgba(174, 207, 235, .32); border-radius: 13px; display: grid; place-items: center; overflow: hidden; background: rgba(9, 23, 43, .78); color: #e6f0fc; }
+.brand-mark img { width: 128%; height: 128%; object-fit: contain; display: block; }
 .brand strong { display: block; color: white; font-size: 18px; letter-spacing: .02em; }
 .brand small { color: #a6bed9; font-size: 11px; }
 .sidebar-nav { display: grid; gap: 5px; }
