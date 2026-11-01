@@ -63,7 +63,8 @@ test("手機版導覽與鍵盤焦點可用", async ({ page }) => {
 test("桌面與手機導覽都提供中文可理解名稱", async ({ page }) => {
   await mockApi(page);
   await page.goto("/#/dashboard");
-  await expect(page.getByRole("img", { name: "Flowfolio 標誌" })).toBeVisible();
+  await expect(page.getByRole("img", { name: "Flowfolio 品牌字樣" })).toBeVisible();
+  await expect(page.getByRole("img", { name: "Flowfolio 右上角品牌字樣" })).toBeVisible();
   await expect(page.locator(".sidebar-nav a[aria-label]")).toHaveCount(7);
   await expect(page.locator(".mobile-nav a[aria-label]")).toHaveCount(7);
 });
