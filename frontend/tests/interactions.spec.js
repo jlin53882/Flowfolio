@@ -52,8 +52,8 @@ test("已移除的報價舊路由會回到總覽", async ({ page }) => {
   await mockApi(page);
   await page.goto("/#/quotes");
   await expect(page).toHaveURL(/#\/dashboard$/);
-  await expect(page.locator("#page h1")).toContainText("把目標與生活");
-  await expect(page.locator("#page h1")).toContainText("放在同一個節奏裡");
+  await expect(page.locator("#page h1")).toContainText("目標與生活");
+  await expect(page.locator("#page h1")).toContainText("放在同一個節奏裡~");
   await expect(page.getByRole("link", { name: "報價", exact: true })).toHaveCount(0);
 });
 
