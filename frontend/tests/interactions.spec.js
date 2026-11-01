@@ -9,11 +9,18 @@ async function mockApi(page) {
         income: 0,
         work_minutes: 0,
         practice_seconds: 0,
+        active_goals: 1,
+        completed_goals: 1,
         completion_rate: 0,
         date: "2026-11-01",
         daily: [],
         recent: [],
       };
+    } else if (url.pathname.endsWith("/goals")) {
+      payload = [
+        { id: "goal-active", title: "完成閱讀計畫", category: "學習", description: "每週完成閱讀進度", target_value: "10", current_value: "3", unit: "本", due_date: "2026-12-31", status: "active", progress_percent: 30, completed_at: null, progress_logs: [] },
+        { id: "goal-completed", title: "完成作品集整理", category: "工作", description: "整理並發布作品集", target_value: "1", current_value: "1", unit: "件", due_date: "2026-10-31", status: "completed", progress_percent: 100, completed_at: "2026-10-31T10:00:00", progress_logs: [] },
+      ];
     } else if (url.pathname.endsWith("/portfolio")) {
       payload = [{
         id: "test-portfolio",
@@ -45,16 +52,17 @@ test("已移除的報價舊路由會回到總覽", async ({ page }) => {
   await mockApi(page);
   await page.goto("/#/quotes");
   await expect(page).toHaveURL(/#\/dashboard$/);
-  await expect(page.locator("#page h1")).toContainText("把工作、練習與生活放在同一個節奏裡");
+  await expect(page.locator("#page h1")).toContainText("把工作、目標與生活放在同一個節奏裡");
   await expect(page.getByRole("link", { name: "報價", exact: true })).toHaveCount(0);
 });
 
-test("練習計時器可以開始與暫停", async ({ page }) => {
+test("目標頁面顯示進行中與已達成且不含計時器", async ({ page }) => {
   await mockApi(page);
   await page.goto("/#/practice");
-  await page.getByLabel("曲目", { exact: true }).fill("測試曲目");
-  await page.getByRole("button", { name: "開始練習", exact: true }).click();
-  await expect(page.getByText("計時中", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "暫停", exact: true }).click();
-  await expect(page.getByText("待機中", { exact: true })).toBeVisible();
+  await expect(page.locator("#page h1")).toHaveText("目標進度");
+  await expect(page.getByRole("heading", { name: "進行中目標", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "已達成", exact: true })).toBeVisible();
+  await expect(page.locator(".goal-card")).toHaveCount(2);
+  await expect(page.getByRole("button", { name: "開始練習", exact: true })).toHaveCount(0);
+  await expect(page.getByText("計時中", { exact: true })).toHaveCount(0);
 });

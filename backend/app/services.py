@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime, time
+from datetime import UTC, date, datetime, time
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 
@@ -10,6 +10,8 @@ from sqlalchemy.orm import Session, selectinload
 from .core.errors import DomainError
 from .db.models import (
     AppSetting,
+    Goal,
+    GoalProgressLog,
     PortfolioItem,
     PortfolioMedia,
     PracticeRecord,
@@ -27,6 +29,9 @@ from .domain.pricing import (
     quantity_to_milliunits,
 )
 from .schemas import (
+    GoalCreate,
+    GoalPatch,
+    GoalProgressCreate,
     PortfolioCreate,
     PortfolioPatch,
     PracticeCreate,
@@ -356,6 +361,137 @@ def delete_practice(db: Session, item_id: str) -> None:
     db.commit()
 
 
+def _goal_progress_percent(current_value: Decimal, target_value: Decimal) -> int:
+    percentage = (current_value / target_value * Decimal("100")).quantize(
+        Decimal("1"), rounding=ROUND_HALF_UP
+    )
+    return max(0, min(100, int(percentage)))
+
+
+def _refresh_goal_status(goal: Goal) -> None:
+    if goal.current_value >= goal.target_value:
+        goal.status = "completed"
+        goal.completed_at = goal.completed_at or datetime.now(UTC).replace(tzinfo=None)
+    else:
+        goal.status = "active"
+        goal.completed_at = None
+
+
+def goal_progress_to_dict(item: GoalProgressLog) -> dict[str, Any]:
+    return {
+        "id": item.id,
+        "record_date": item.record_date.isoformat(),
+        "current_value": decimal_str(item.current_value),
+        "note": item.note,
+        "created_at": item.created_at.isoformat(),
+    }
+
+
+def goal_to_dict(item: Goal) -> dict[str, Any]:
+    return {
+        "id": item.id,
+        "title": item.title,
+        "category": item.category,
+        "description": item.description,
+        "target_value": decimal_str(item.target_value),
+        "current_value": decimal_str(item.current_value),
+        "unit": item.unit,
+        "due_date": item.due_date.isoformat() if item.due_date else None,
+        "status": item.status,
+        "progress_percent": _goal_progress_percent(item.current_value, item.target_value),
+        "completed_at": item.completed_at.isoformat() if item.completed_at else None,
+        "progress_logs": [goal_progress_to_dict(log) for log in item.progress_logs[:5]],
+        "created_at": item.created_at.isoformat(),
+        "updated_at": item.updated_at.isoformat(),
+    }
+
+
+def list_goals(db: Session, status: str | None = None) -> list[dict[str, Any]]:
+    query = select(Goal).options(selectinload(Goal.progress_logs)).order_by(
+        Goal.status.asc(), Goal.created_at.desc()
+    )
+    if status:
+        query = query.where(Goal.status == status)
+    return [goal_to_dict(item) for item in db.scalars(query).all()]
+
+
+def get_goal(db: Session, item_id: str) -> Goal:
+    item = db.scalar(
+        select(Goal).options(selectinload(Goal.progress_logs)).where(Goal.id == item_id)
+    )
+    if not item:
+        raise DomainError("找不到目標", 404, "goal_not_found")
+    return item
+
+
+def create_goal(db: Session, payload: GoalCreate) -> dict[str, Any]:
+    item = Goal(
+        title=payload.title.strip(),
+        category=payload.category.strip(),
+        description=payload.description.strip(),
+        target_value=payload.target_value,
+        current_value=payload.current_value,
+        unit=payload.unit.strip(),
+        due_date=payload.due_date,
+        status="active",
+    )
+    _refresh_goal_status(item)
+    db.add(item)
+    if item.current_value > 0:
+        db.add(
+            GoalProgressLog(
+                goal=item,
+                record_date=date.today(),
+                current_value=item.current_value,
+                note="建立目標時的初始進度",
+            )
+        )
+    db.commit()
+    db.refresh(item)
+    return goal_to_dict(item)
+
+
+def update_goal(db: Session, item_id: str, payload: GoalPatch) -> dict[str, Any]:
+    item = get_goal(db, item_id)
+    data = payload.model_dump(exclude_unset=True)
+    for field in ("title", "category", "description", "unit"):
+        if field in data and data[field] is not None:
+            setattr(item, field, data[field].strip())
+    if "target_value" in data and data["target_value"] is not None:
+        item.target_value = data["target_value"]
+    if "due_date" in data:
+        item.due_date = data["due_date"]
+    _refresh_goal_status(item)
+    db.commit()
+    db.refresh(item)
+    return goal_to_dict(item)
+
+
+def update_goal_progress(
+    db: Session, item_id: str, payload: GoalProgressCreate
+) -> dict[str, Any]:
+    item = get_goal(db, item_id)
+    item.current_value = payload.current_value
+    _refresh_goal_status(item)
+    db.add(
+        GoalProgressLog(
+            goal=item,
+            record_date=payload.record_date,
+            current_value=payload.current_value,
+            note=payload.note.strip(),
+        )
+    )
+    db.commit()
+    db.refresh(item)
+    return goal_to_dict(item)
+
+
+def delete_goal(db: Session, item_id: str) -> None:
+    item = get_goal(db, item_id)
+    db.delete(item)
+    db.commit()
+
+
 def _load_quote(db: Session, item_id: str) -> Quote:
     quote = db.scalar(select(Quote).options(selectinload(Quote.items)).where(Quote.id == item_id))
     if not quote:
@@ -553,6 +689,7 @@ def dashboard(db: Session, month: str, selected_date: date) -> dict[str, Any]:
     recent_practice = db.scalars(
         select(PracticeRecord).order_by(PracticeRecord.created_at.desc()).limit(5)
     ).all()
+    goals = db.scalars(select(Goal)).all()
     recent = sorted(
         [
             {
@@ -586,6 +723,8 @@ def dashboard(db: Session, month: str, selected_date: date) -> dict[str, Any]:
         "income": money_str(sum(item.income_minor for item in works)),
         "work_minutes": sum(item.work_minutes for item in works),
         "practice_seconds": sum(item.duration_seconds for item in practices),
+        "active_goals": sum(item.status == "active" for item in goals),
+        "completed_goals": sum(item.status == "completed" for item in goals),
         "completion_rate": completion_rate(day_total, day_completed),
         "daily": daily,
         "recent": recent,
@@ -612,6 +751,7 @@ def export_data(db: Session) -> dict[str, Any]:
         "works": list_works(db),
         "todos": list_todos(db),
         "practice": list_practice(db),
+        "goals": list_goals(db),
         "quotes": list_quotes(db),
         "portfolio": list_portfolio(db),
     }

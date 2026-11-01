@@ -32,7 +32,7 @@ npm run test:e2e
 Set-Location ..
 ```
 
-後端測試涵蓋純計價、統計單位、API CRUD、唯一報價編號、CSV/PDF 產出、圖片路徑邊界與舊資料 dry-run/idempotency。前端 build 確認 Vite 可產出 FastAPI 需要的 `frontend/dist`；Stylelint 檢查 CSS；Playwright 對現有主要路由與五組 viewport 檢查水平溢位、鍵盤焦點、舊報價路由導回與視覺基準。視覺基準固定比較 viewport，避免不同作業系統的整頁高度與捲軸差異造成誤判。
+後端測試涵蓋純計價、統計單位、目標進度 API、唯一報價編號、CSV/PDF 產出、圖片路徑邊界與舊資料 dry-run/idempotency。前端 build 確認 Vite 可產出 FastAPI 需要的 `frontend/dist`；Stylelint 檢查 CSS；Playwright 對現有主要路由與五組 viewport 檢查水平溢位、鍵盤焦點、舊報價路由導回、目標區塊與視覺基準。視覺基準固定比較 viewport，避免不同作業系統的整頁高度與捲軸差異造成誤判。
 
 ## 手動 smoke test
 
@@ -40,7 +40,7 @@ Set-Location ..
 2. 新增工作，檢查收入與工作時數分別出現在 Dashboard。
 3. 新增待辦、勾選完成，檢查指定日期與完成率。
 4. 新增作品並上傳 JPG/PNG，重新整理後檢查縮圖與圖片端點。
-5. 練習開始、暫停、重新整理、繼續、儲存，確認時間戳快照不歸零。
+5. 建立不同類型目標，手動更新目前進度，達到目標值後檢查移至已達成區塊。
 6. 設定頁下載 JSON、建立備份，確認外部移轉來源沒有變化。
 7. 在 360px、390px、768px、1024px、1440px 寬度檢查側欄／底部導覽與表格可讀性。
 
@@ -54,7 +54,7 @@ Set-Location ..
 
 | 檢查 | 結果 |
 | --- | --- |
-| `uv run pytest -n auto` | 7 passed；使用 pytest-xdist 平行 worker |
+| `uv run pytest -n auto` | 8 passed；使用 pytest-xdist 平行 worker |
 | `scripts/windows/run-tests.ps1 -Serial` | 7 passed；單程序除錯模式 |
 | `uv run ruff check backend` | 通過 |
 | `npm run lint:css` | 通過 |
@@ -94,7 +94,7 @@ GitHub Actions 會保存以下 artifact 14 天：
 - 工作紀錄：中文欄位標籤、收入／工時輸入與工作類型下拉選單可操作；沒有送出測試資料。
 - 舊報價路由：直接開啟 `#/quotes` 會導回總覽，桌面與手機導覽都不再顯示報價入口；後端報價 API 與資料表保留相容性。
 - 作品集：已匯入的作品與 2 張圖片可見；點擊縮圖可開啟 dialog，點擊「關閉」後 dialog 數量回到 0。
-- 練習：填入曲目後可啟動計時器，狀態顯示「計時中」；點擊暫停後顯示「待機中」與清除計時選項。
+- 目標：可看到進行中與已達成兩個區塊，目標卡顯示進度條與手動更新欄位；頁面不再出現計時器。
 - 待辦、分析、設定：主要標題、空狀態／六個月圖表、服務正常訊息與資料操作入口可見。
 - 鍵盤：Tab 後焦點落在導覽連結，畫面有明確青綠色 focus ring。
 - 響應式：實際瀏覽器確認桌機／平板樣式；360、390、768、1024、1440px 的完整路由矩陣由 Playwright 驗證通過。

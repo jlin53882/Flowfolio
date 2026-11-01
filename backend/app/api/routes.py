@@ -18,6 +18,9 @@ from ..db.session import get_db
 from ..infrastructure.backup import create_backup
 from ..infrastructure.exports import quote_csv_bytes, quote_pdf_bytes, safe_filename
 from ..schemas import (
+    GoalCreate,
+    GoalPatch,
+    GoalProgressCreate,
     PortfolioCreate,
     PortfolioPatch,
     PracticeCreate,
@@ -32,11 +35,13 @@ from ..schemas import (
 from ..services import (
     _load_quote,
     analytics,
+    create_goal,
     create_portfolio,
     create_practice,
     create_todo,
     create_work,
     dashboard,
+    delete_goal,
     delete_portfolio,
     delete_practice,
     delete_quote,
@@ -44,9 +49,12 @@ from ..services import (
     delete_work,
     duplicate_quote,
     export_data,
+    get_goal,
     get_media,
     get_portfolio,
     get_work,
+    goal_to_dict,
+    list_goals,
     list_portfolio,
     list_practice,
     list_quotes,
@@ -55,6 +63,8 @@ from ..services import (
     portfolio_to_dict,
     quote_to_dict,
     save_quote,
+    update_goal,
+    update_goal_progress,
     update_portfolio,
     update_practice,
     update_todo,
@@ -144,6 +154,39 @@ def edit_practice(item_id: str, payload: PracticePatch, db: Session = Depends(ge
 def remove_practice(item_id: str, db: Session = Depends(get_db)):
     delete_practice(db, item_id)
     return Response(status_code=204)
+
+
+@router.get("/goals")
+def read_goals(status: str | None = None, db: Session = Depends(get_db)):
+    return list_goals(db, status)
+
+
+@router.post("/goals", status_code=201)
+def add_goal(payload: GoalCreate, db: Session = Depends(get_db)):
+    return create_goal(db, payload)
+
+
+@router.patch("/goals/{item_id}")
+def edit_goal(item_id: str, payload: GoalPatch, db: Session = Depends(get_db)):
+    return update_goal(db, item_id, payload)
+
+
+@router.post("/goals/{item_id}/progress")
+def add_goal_progress(
+    item_id: str, payload: GoalProgressCreate, db: Session = Depends(get_db)
+):
+    return update_goal_progress(db, item_id, payload)
+
+
+@router.delete("/goals/{item_id}", status_code=204)
+def remove_goal(item_id: str, db: Session = Depends(get_db)):
+    delete_goal(db, item_id)
+    return Response(status_code=204)
+
+
+@router.get("/goals/{item_id}")
+def read_goal(item_id: str, db: Session = Depends(get_db)):
+    return goal_to_dict(get_goal(db, item_id))
 
 
 @router.get("/quotes")

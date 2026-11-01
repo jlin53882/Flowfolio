@@ -1,6 +1,6 @@
 # API 契約
 
-前端報價工作台已移除，以下報價端點保留給既有資料、匯出流程與未來相容性使用；目前網站導覽不再提供報價頁面入口。
+前端報價工作台已移除，以下報價端點保留給既有資料、匯出流程與未來相容性使用；目前網站導覽不再提供報價頁面入口。原本的練習計時 API 也只保留讀取相容性，新的前端改用目標進度 API，完全不啟用計時器。
 
 所有業務 API 以 `/api/v1` 開頭。請求驗證失敗使用 FastAPI 的 422；業務錯誤使用：
 
@@ -25,6 +25,9 @@
 | PATCH/DELETE | `/api/v1/todos/{id}` | 待辦更新與刪除 |
 | GET/POST | `/api/v1/practice` | 練習列表與新增 |
 | PATCH/DELETE | `/api/v1/practice/{id}` | 練習更新與刪除 |
+| GET/POST | `/api/v1/goals` | 目標列表與建立 |
+| PATCH/DELETE | `/api/v1/goals/{id}` | 目標資料更新與刪除 |
+| POST | `/api/v1/goals/{id}/progress` | 手動寫入目前進度與備註 |
 | GET/POST | `/api/v1/quotes` | 報價歷史與建立 |
 | GET/PATCH/DELETE | `/api/v1/quotes/{id}` | 報價檢視、更新、刪除 |
 | POST | `/api/v1/quotes/{id}/duplicate` | 複製報價並產生新編號 |

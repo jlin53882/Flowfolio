@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, date, datetime
+from decimal import Decimal
 
 from sqlalchemy import (
     Boolean,
@@ -10,6 +11,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Integer,
+    Numeric,
     String,
     Text,
     Time,
@@ -117,6 +119,47 @@ class PracticeRecord(Base, TimestampMixin):
     duration_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     notes: Mapped[str] = mapped_column(Text, default="", nullable=False)
     completed: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+
+class Goal(Base, TimestampMixin):
+    __tablename__ = "goals"
+    __table_args__ = (
+        CheckConstraint("target_value > 0", name="goal_target_value"),
+        CheckConstraint("current_value >= 0", name="goal_current_value"),
+        CheckConstraint("status IN ('active', 'completed')", name="goal_status"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    category: Mapped[str] = mapped_column(String(100), default="未分類", nullable=False, index=True)
+    description: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    target_value: Mapped[Decimal] = mapped_column(Numeric(12, 3), nullable=False)
+    current_value: Mapped[Decimal] = mapped_column(Numeric(12, 3), default=0, nullable=False)
+    unit: Mapped[str] = mapped_column(String(40), default="次", nullable=False)
+    due_date: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
+    status: Mapped[str] = mapped_column(String(20), default="active", nullable=False, index=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    progress_logs: Mapped[list[GoalProgressLog]] = relationship(
+        back_populates="goal",
+        cascade="all, delete-orphan",
+        order_by="GoalProgressLog.record_date.desc(), GoalProgressLog.created_at.desc()",
+    )
+
+
+class GoalProgressLog(Base):
+    __tablename__ = "goal_progress_logs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    goal_id: Mapped[str] = mapped_column(
+        ForeignKey("goals.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    record_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    current_value: Mapped[Decimal] = mapped_column(Numeric(12, 3), nullable=False)
+    note: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+
+    goal: Mapped[Goal] = relationship(back_populates="progress_logs")
 
 
 class PortfolioItem(Base, TimestampMixin):

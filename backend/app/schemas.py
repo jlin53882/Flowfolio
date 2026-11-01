@@ -76,6 +76,31 @@ class PracticePatch(StrictModel):
     completed: bool | None = None
 
 
+class GoalCreate(StrictModel):
+    title: str = Field(min_length=1, max_length=200)
+    category: str = Field(default="未分類", min_length=1, max_length=100)
+    description: str = Field(default="", max_length=5000)
+    target_value: Decimal = Field(gt=0, le=1_000_000_000)
+    current_value: Decimal = Field(default=Decimal("0"), ge=0, le=1_000_000_000)
+    unit: str = Field(default="次", min_length=1, max_length=40)
+    due_date: DateType | None = None
+
+
+class GoalPatch(StrictModel):
+    title: str | None = Field(default=None, min_length=1, max_length=200)
+    category: str | None = Field(default=None, min_length=1, max_length=100)
+    description: str | None = Field(default=None, max_length=5000)
+    target_value: Decimal | None = Field(default=None, gt=0, le=1_000_000_000)
+    unit: str | None = Field(default=None, min_length=1, max_length=40)
+    due_date: DateType | None = None
+
+
+class GoalProgressCreate(StrictModel):
+    current_value: Decimal = Field(ge=0, le=1_000_000_000)
+    record_date: DateType = Field(default_factory=DateType.today)
+    note: str = Field(default="", max_length=5000)
+
+
 class QuoteItemInput(StrictModel):
     description: str = Field(min_length=1, max_length=300)
     quantity: Decimal = Field(gt=0, le=1_000_000)

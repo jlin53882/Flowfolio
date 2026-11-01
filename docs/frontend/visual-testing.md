@@ -26,7 +26,7 @@ npx playwright install chromium
 
 ## 驗收矩陣
 
-`tests/layout.spec.js` 會對總覽、工作、作品集、練習、待辦、分析、設定七個主要路由，分別檢查：
+`tests/layout.spec.js` 會對總覽、工作、作品集、目標、待辦、分析、設定七個主要路由，內部仍使用相容路徑 `#/practice`，分別檢查：
 
 | viewport | 目的 |
 | --- | --- |

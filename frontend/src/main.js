@@ -3,12 +3,11 @@ import { dateText, duration, hours, money, monthOf, today } from "./utils/format
 import "./styles/main.css";
 
 const app = document.querySelector("#app");
-const timerStorageKey = "flowfolio-practice-timer";
 const navItems = [
   ["dashboard", "總覽", "⌂"],
   ["works", "工作紀錄", "▣"],
   ["portfolio", "作品集", "▧"],
-  ["practice", "練習", "♫"],
+  ["practice", "目標", "◎"],
   ["todos", "待辦", "✓"],
   ["analytics", "分析", "◒"],
   ["settings", "設定", "⚙"],
@@ -19,10 +18,8 @@ const state = {
   month: monthOf(),
   date: today(),
   workEditing: null,
-  practiceEditing: null,
+  goalEditing: null,
   portfolioEditing: null,
-  timer: loadTimer(),
-  timerInterval: null,
 };
 
 function el(tag, props = {}, children = []) {
@@ -144,7 +141,7 @@ function renderShell() {
   app.innerHTML = `
     <div class="app-shell">
       <aside class="sidebar">
-        <div class="brand"><span class="brand-mark">F</span><div><strong>Flowfolio</strong><small>工作與練習節奏</small></div></div>
+        <div class="brand"><span class="brand-mark">F</span><div><strong>Flowfolio</strong><small>工作與目標節奏</small></div></div>
         <nav class="sidebar-nav" aria-label="主要導覽"></nav>
         <div class="sidebar-footer"><span class="status-dot"></span><span>私人本機模式</span></div>
       </aside>
@@ -167,7 +164,7 @@ function renderShell() {
 }
 
 function renderPage(outlet) {
-  const pages = { dashboard: renderDashboard, works: renderWorks, portfolio: renderPortfolio, practice: renderPractice, todos: renderTodos, analytics: renderAnalytics, settings: renderSettings };
+  const pages = { dashboard: renderDashboard, works: renderWorks, portfolio: renderPortfolio, practice: renderGoals, todos: renderTodos, analytics: renderAnalytics, settings: renderSettings };
   (pages[state.route] || renderDashboard)(outlet);
 }
 
@@ -178,7 +175,7 @@ function statCard(label, value, detail, accent) {
 }
 
 async function renderDashboard(outlet) {
-  const frame = pageFrame("今天的工作台", "把工作、練習與生活放在同一個節奏裡", "收入與工作時數分開計算，練習時間也維持自己的單位。");
+  const frame = pageFrame("今天的工作台", "把工作、目標與生活放在同一個節奏裡", "收入、工作時數與目標狀態各自保留來源。");
   const controls = el("div", { className: "toolbar dashboard-toolbar" });
   controls.append(field("統計月份", "month", "month", state.month), field("查看日期", "date", "date", state.date));
   controls.append(button("重新整理", "button secondary", () => load()));
@@ -206,7 +203,7 @@ async function renderDashboard(outlet) {
       stats.replaceChildren(
         statCard("本月收入", money(data.income), "工作紀錄收入合計", "teal"),
         statCard("本月工作時數", hours(data.work_minutes), "不含練琴時間", "blue"),
-        statCard("本月練習時間", duration(data.practice_seconds), "獨立以秒儲存", "violet"),
+        statCard("進行中目標", data.active_goals ?? 0, "尚未達成的目標", "violet"),
         statCard("當日完成率", `${data.completion_rate}%`, `${data.date} 的已完成項目`, "amber"),
       );
       dailyList.replaceChildren();
@@ -312,39 +309,99 @@ async function renderTodos(outlet) {
   try { const items = await api("/api/v1/todos"); list.replaceChildren(); if (!items.length) list.append(emptyState("目前沒有待辦")); items.forEach((item) => { const row = el("div", { className: `list-row ${item.completed ? "is-done" : ""}` }); const check = el("input", { type: "checkbox" }); check.checked = item.completed; check.addEventListener("change", async () => { await api(`/api/v1/todos/${item.id}`, { method: "PATCH", body: { completed: check.checked } }); renderShell(); }); row.append(check, el("div", { className: "row-main" }, [el("strong", { text: item.title }), el("small", { text: `${dateText(item.date)}${item.time ? ` · ${item.time}` : ""}${item.location ? ` · ${item.location}` : ""}` })]), button("編輯", "button ghost small", () => { state.todoEditing = item; renderShell(); }), button("刪除", "button danger small", async () => { if (!confirm("確定要刪除這個待辦嗎？")) return; await api(`/api/v1/todos/${item.id}`, { method: "DELETE" }); toast("待辦已刪除"); renderShell(); })); list.append(row); }); } catch (error) { list.replaceChildren(emptyState(formatError(error))); }
 }
 
-function loadTimer() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(timerStorageKey) || "null");
-    if (!saved) return { running: false, accumulated: 0, startedAt: null, piece: "", notes: "" };
-    if (saved.running && saved.startedAt) saved.accumulated += Math.max(0, (Date.now() - saved.startedAt) / 1000);
-    saved.startedAt = saved.running ? Date.now() : null;
-    return saved;
-  } catch { return { running: false, accumulated: 0, startedAt: null, piece: "", notes: "" }; }
+function goalForm(editing = null) {
+  const form = el("form", { className: "form-grid", id: "goal-form" });
+  const fields = [
+    field("目標名稱", "text", "title", editing?.title || "", { required: true, placeholder: "例如：完成一本書" }),
+    field("目標類別", "text", "category", editing?.category || "學習", { required: true, placeholder: "例如：學習、工作、健康" }),
+    field("目標值", "number", "target_value", editing?.target_value || "1", { required: true, min: 0.001, step: 0.1 }),
+    field("單位", "text", "unit", editing?.unit || "次", { required: true, placeholder: "例如：次、頁、公里" }),
+    field("目標日期", "date", "due_date", editing?.due_date || ""),
+    field("目標說明", "textarea", "description", editing?.description || "", { rows: 4 }),
+  ];
+  if (!editing) fields.splice(2, 0, field("目前進度", "number", "current_value", "0", { min: 0, step: 0.1 }));
+  else fields.splice(2, 0, el("div", { className: "goal-current-note", text: `目前進度：${editing.current_value} ${editing.unit}` }));
+  form.append(...fields);
+  const actions = el("div", { className: "form-actions" });
+  actions.append(button(editing ? "儲存目標" : "建立目標", "button primary", undefined, "submit"));
+  if (editing) actions.append(button("取消編輯", "button secondary", () => { state.goalEditing = null; renderShell(); }));
+  form.append(actions);
+  return form;
 }
 
-function timerSeconds() { return state.timer.running ? state.timer.accumulated + Math.max(0, (Date.now() - state.timer.startedAt) / 1000) : state.timer.accumulated; }
-function saveTimerSnapshot() { localStorage.setItem(timerStorageKey, JSON.stringify({ ...state.timer, accumulated: timerSeconds(), startedAt: state.timer.running ? Date.now() : null })); }
-function resetTimer() { state.timer = { running: false, accumulated: 0, startedAt: null, piece: "", notes: "" }; localStorage.removeItem(timerStorageKey); }
+function renderGoalCard(item, onChanged) {
+  const node = el("article", { className: `goal-card ${item.status === "completed" ? "is-completed" : ""}` });
+  const header = el("div", { className: "goal-card-header" });
+  const copy = el("div", {});
+  copy.append(el("span", { className: "goal-category", text: item.category }), el("h3", { text: item.title }));
+  header.append(copy, el("span", { className: "goal-status", text: item.status === "completed" ? "已達成" : "進行中" }));
+  node.append(header);
+  if (item.description) node.append(el("p", { className: "goal-description", text: item.description }));
+  const meta = el("div", { className: "goal-meta" });
+  meta.append(el("span", { text: item.due_date ? `期限 ${dateText(item.due_date)}` : "未設定期限" }), el("span", { text: `${item.current_value} / ${item.target_value} ${item.unit}` }));
+  node.append(meta);
+  const progress = el("div", { className: "goal-progress-track", role: "progressbar", "aria-label": `${item.title} 進度`, "aria-valuemin": "0", "aria-valuemax": "100", "aria-valuenow": String(item.progress_percent) });
+  progress.append(el("div", { className: "goal-progress-bar", style: `width:${item.progress_percent}%` }));
+  node.append(progress, el("div", { className: "goal-progress-values" }, [el("strong", { text: `${item.progress_percent}%` }), el("span", { text: item.status === "completed" ? `完成於 ${dateText(item.completed_at?.slice(0, 10))}` : "持續更新你的進度" })]));
+  if (item.status === "active") {
+    const progressForm = el("form", { className: "goal-progress-form" });
+    progressForm.append(field("更新進度", "number", "current_value", item.current_value, { min: 0, step: 0.1 }), field("進度備註", "text", "note", "", { placeholder: "這次完成了什麼？" }), button("更新進度", "button secondary small", undefined, "submit"));
+    progressForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      try {
+        await api(`/api/v1/goals/${item.id}/progress`, { method: "POST", body: { current_value: getValue(progressForm, '[name="current_value"]'), record_date: today(), note: getValue(progressForm, '[name="note"]') } });
+        toast("目標進度已更新");
+        await onChanged();
+      } catch (error) { toast(formatError(error), "error"); }
+    });
+    node.append(progressForm);
+  }
+  const actions = el("div", { className: "actions goal-actions" });
+  actions.append(button("編輯", "button ghost small", () => { state.goalEditing = item; renderShell(); }), button("刪除", "button danger small", async () => { if (!confirm("確定要刪除這個目標與進度紀錄嗎？")) return; try { await api(`/api/v1/goals/${item.id}`, { method: "DELETE" }); toast("目標已刪除"); await onChanged(); } catch (error) { toast(formatError(error), "error"); } }));
+  node.append(actions);
+  return node;
+}
 
-async function renderPractice(outlet) {
-  const frame = pageFrame("Practice", "練習計時器", "計時狀態會留在瀏覽器快照中；儲存後才會寫入 SQLite 練習紀錄。");
-  const layout = el("div", { className: "two-column practice-layout" });
-  const timerCard = card("今天練什麼？", "重新整理或手機切到背景後，仍會依時間戳恢復。");
-  const form = el("form", { className: "practice-form", id: "practice-form" });
-  form.append(field("曲目", "text", "piece", state.practiceEditing?.piece || state.timer.piece || "", { required: true, placeholder: "例如：Chopin Nocturne Op.9 No.2" }), field("練習心得", "textarea", "notes", state.practiceEditing?.notes || state.timer.notes || "", { rows: 4 }));
-  const display = el("div", { className: "timer-display", text: duration(state.practiceEditing ? state.practiceEditing.duration_seconds : timerSeconds()) });
-  const status = el("div", { className: "timer-status", text: state.timer.running ? "計時中" : state.practiceEditing ? "編輯歷史紀錄" : "待機中" });
-  const timerActions = el("div", { className: "form-actions center" });
-  const toggle = button(state.timer.running ? "暫停" : "開始練習", `button ${state.timer.running ? "warning" : "primary"}`, () => { const piece = getValue(form, '[name="piece"]'); if (!piece) { toast("請先輸入曲目", "error"); return; } state.timer.piece = piece; state.timer.notes = getValue(form, '[name="notes"]'); if (state.timer.running) { state.timer.accumulated = timerSeconds(); state.timer.running = false; state.timer.startedAt = null; } else { state.timer.running = true; state.timer.startedAt = Date.now(); } saveTimerSnapshot(); renderShell(); });
-  timerActions.append(toggle);
-  if (state.practiceEditing) timerActions.append(button("儲存修改", "button secondary", async () => { try { await api(`/api/v1/practice/${state.practiceEditing.id}`, { method: "PATCH", body: { piece: getValue(form, '[name="piece"]'), notes: getValue(form, '[name="notes"]') } }); toast("練習紀錄已更新"); state.practiceEditing = null; renderShell(); } catch (error) { toast(formatError(error), "error"); } }));
-  else timerActions.append(button("結束並儲存", "button secondary", async () => { const piece = getValue(form, '[name="piece"]'); if (!piece) { toast("請先輸入曲目", "error"); return; } const seconds = Math.round(timerSeconds()); try { await api("/api/v1/practice", { method: "POST", body: { date: today(), piece, notes: getValue(form, '[name="notes"]'), duration_seconds: seconds } }); toast(`已儲存 ${duration(seconds)} 的練習`); resetTimer(); renderShell(); } catch (error) { toast(formatError(error), "error"); } }));
-  if (state.timer.accumulated > 0 && !state.practiceEditing) timerActions.append(button("清除計時", "button ghost small", () => { if (confirm("清除尚未儲存的計時？")) { resetTimer(); renderShell(); } }));
-  form.append(status, display, timerActions); timerCard.append(form);
-  const historyCard = card("練習歷史", "時間以整數秒儲存，畫面再轉為時分秒。"); const history = el("div", { className: "stack-list" }); historyCard.append(history); layout.append(timerCard, historyCard); frame.append(layout); outlet.replaceChildren(frame);
-  if (state.timer.running) { window.clearInterval(state.timerInterval); state.timerInterval = window.setInterval(() => { display.textContent = duration(timerSeconds()); saveTimerSnapshot(); }, 500); }
-  else window.clearInterval(state.timerInterval);
-  try { const items = await api("/api/v1/practice"); if (!items.length) history.append(emptyState("還沒有練習紀錄")); items.forEach((item) => { const row = el("div", { className: "list-row" }); row.append(el("span", { className: "kind-dot practice", text: "練" }), el("div", { className: "row-main" }, [el("strong", { text: item.piece }), el("small", { text: `${dateText(item.date)} · ${duration(item.duration_seconds)}${item.notes ? ` · ${item.notes}` : ""}` })]), button("編輯", "button ghost small", () => { state.practiceEditing = item; renderShell(); }), button("刪除", "button danger small", async () => { if (!confirm("確定要刪除這筆練習紀錄嗎？")) return; await api(`/api/v1/practice/${item.id}`, { method: "DELETE" }); toast("練習紀錄已刪除"); renderShell(); })); history.append(row); }); } catch (error) { history.append(emptyState(formatError(error))); }
+async function renderGoals(outlet) {
+  const frame = pageFrame("Goals", "目標進度", "不限鋼琴，手動追蹤學習、工作、健康與生活中的各種目標。");
+  const layout = el("div", { className: "goal-layout" });
+  const editor = card(state.goalEditing ? "編輯目標" : "建立新目標", "設定目標值後，隨時手動更新目前進度。");
+  editor.append(goalForm(state.goalEditing));
+  const activeCard = card("進行中目標", "還在持續累積的目標。");
+  const activeList = el("div", { className: "goal-list" });
+  activeCard.append(activeList);
+  const achievedCard = card("已達成", "完成的目標會保留達成日期。");
+  achievedCard.classList.add("goal-achieved");
+  const achievedList = el("div", { className: "goal-list" });
+  achievedCard.append(achievedList);
+  layout.append(editor, activeCard, achievedCard);
+  frame.append(layout);
+  outlet.replaceChildren(frame);
+
+  const form = frame.querySelector("#goal-form");
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const body = { title: getValue(form, '[name="title"]'), category: getValue(form, '[name="category"]'), target_value: getValue(form, '[name="target_value"]'), unit: getValue(form, '[name="unit"]'), due_date: getValue(form, '[name="due_date"]') || null, description: getValue(form, '[name="description"]') };
+    if (!state.goalEditing) body.current_value = getValue(form, '[name="current_value"]') || "0";
+    try { await api(state.goalEditing ? `/api/v1/goals/${state.goalEditing.id}` : "/api/v1/goals", { method: state.goalEditing ? "PATCH" : "POST", body }); toast(state.goalEditing ? "目標已更新" : "目標已建立"); state.goalEditing = null; renderShell(); } catch (error) { toast(formatError(error), "error"); }
+  });
+
+  async function load() {
+    try {
+      const items = await api("/api/v1/goals");
+      activeList.replaceChildren(); achievedList.replaceChildren();
+      const activeItems = items.filter((item) => item.status === "active");
+      const achievedItems = items.filter((item) => item.status === "completed");
+      if (!activeItems.length) activeList.append(emptyState("目前沒有進行中的目標"));
+      if (!achievedItems.length) achievedList.append(emptyState("還沒有已達成的目標"));
+      activeItems.forEach((item) => activeList.append(renderGoalCard(item, load)));
+      achievedItems.forEach((item) => achievedList.append(renderGoalCard(item, load)));
+    } catch (error) {
+      activeList.replaceChildren(emptyState(formatError(error)));
+      achievedList.replaceChildren();
+    }
+  }
+  await load();
 }
 
 async function renderPortfolio(outlet) {
@@ -379,6 +436,5 @@ async function renderSettings(outlet) {
 }
 
 window.addEventListener("hashchange", () => { state.route = location.hash.replace(/^#\/?/, "") || "dashboard"; renderShell(); });
-document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden" && state.timer.running) saveTimerSnapshot(); });
 renderShell();
 
