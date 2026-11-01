@@ -63,18 +63,20 @@ test("手機版導覽與鍵盤焦點可用", async ({ page }) => {
 test("桌面與手機導覽都提供中文可理解名稱", async ({ page }) => {
   await mockApi(page);
   await page.goto("/#/dashboard");
-  await expect(page.getByRole("img", { name: "Flowfolio 品牌字樣" })).toBeVisible();
   await expect(page.getByRole("img", { name: "Flowfolio 右上角品牌字樣" })).toBeVisible();
+  await expect(page.locator(".brand strong")).toHaveText("Flowfolio");
+  await expect(page.locator(".brand img")).toHaveCount(0);
   await expect(page.locator(".sidebar-nav a[aria-label]")).toHaveCount(7);
   await expect(page.locator(".mobile-nav a[aria-label]")).toHaveCount(7);
 });
 
-test("Logo 僅在總覽頁顯示", async ({ page }) => {
+test("右上角 Logo 僅在總覽頁顯示", async ({ page }) => {
   await mockApi(page);
   for (const route of routes) {
     await page.goto(`/#/${route}`);
-    const brandImages = page.getByRole("img", { name: /Flowfolio (品牌字樣|右上角品牌字樣)/ });
-    if (route === "dashboard") await expect(brandImages).toHaveCount(2);
-    else await expect(brandImages).toHaveCount(0);
+    const headerBrand = page.getByRole("img", { name: "Flowfolio 右上角品牌字樣" });
+    if (route === "dashboard") await expect(headerBrand).toHaveCount(1);
+    else await expect(headerBrand).toHaveCount(0);
+    await expect(page.locator(".brand img")).toHaveCount(0);
   }
 });
