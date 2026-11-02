@@ -48,6 +48,14 @@ test("作品圖片預覽可以開啟與關閉", async ({ page }) => {
   await expect(page.locator("dialog")).toHaveCount(0);
 });
 
+test("作品集只使用日期不顯示時間", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/#/portfolio");
+  await expect(page.locator('[name="date"]')).toHaveCount(1);
+  await expect(page.locator('[name="time"]')).toHaveCount(0);
+  await expect(page.locator(".portfolio-card .muted")).not.toContainText("12:00");
+});
+
 test("已移除的報價舊路由會回到總覽", async ({ page }) => {
   await mockApi(page);
   await page.goto("/#/quotes");

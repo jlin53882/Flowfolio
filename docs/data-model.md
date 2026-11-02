@@ -11,13 +11,15 @@
 | `goal_progress_logs` | 目標進度紀錄 | UUID、目標外鍵、紀錄日期、目前值、進度備註 |
 | `quotes` | 報價草稿與歷史 | UUID、唯一報價編號、客戶、日期、稅率 basis points、訂金比例、狀態 |
 | `quote_items` | 報價明細 | UUID、排序、說明、`quantity_milliunits`、`unit_price_minor` |
-| `portfolio_items` | 作品資訊 | UUID、日期、時間、名稱、分類、內容 |
+| `portfolio_items` | 作品資訊 | UUID、日期、（相容）時間、名稱、分類、內容 |
 | `portfolio_media` | 作品圖片 | UUID、作品外鍵、應用產生的 storage key、格式、大小、排序、缺檔狀態 |
 | `legacy_import_runs`、`legacy_import_items` | 移轉稽核 | 來源 SHA-256、來源序位、內容摘要、結果與目標 ID |
 
 所有主要紀錄都有 `created_at`、`updated_at`；外鍵設定刪除策略，列表使用日期、建立時間與穩定 ID 排序。
 
 目標資料仍使用 Decimal 保存內部進度，建立目標時由後端套用 0／1／項的預設值；前端不要求輸入目前進度、目標值或單位，只透過「標記已達成／恢復進行中」切換狀態。舊 `practice_records` 不在新的目標頁面顯示，也不會因功能改版被刪除。
+
+作品集新介面只使用日期；既有作品的時間欄位保留作為資料與 API 相容用途，不在表單或作品卡片顯示。
 
 ## 金額
 
