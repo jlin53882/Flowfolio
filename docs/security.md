@@ -9,12 +9,14 @@ flowchart LR
     App --> PrivateData[(SQLite、media、備份)]
     Tailnet[已驗證的 Tailscale tailnet] --> Serve[Tailscale Serve]
     Serve --> Loopback
-    Funnel[Funnel／公開網際網路] -. 明確禁止 .-> Loopback
+    Internet[公開網際網路] --> Funnel[Tailscale Funnel\n使用者明確啟用]
+    Funnel --> Loopback
     Browser[瀏覽器輸入／上傳] --> App
 ```
 
-- 正式服務只 bind `127.0.0.1`；私人 HTTPS 由使用者確認後的 Tailscale Serve 提供。
-- 不使用 Funnel、公開反向代理、路由器 Port Forwarding，也不將 SQLite、備份、`.env`、原始 JSON、圖片或報價資料提交到 Git。
+- 正式服務只 bind `127.0.0.1`；私人 HTTPS 由 Tailscale Serve 提供，公開 HTTPS 只有在使用者明確執行 Funnel 啟動腳本時才啟用。
+- Funnel 會讓任何取得網址的人連線；Flowfolio 目前沒有登入驗證，因此不應把含私人資料的正式資料庫公開。停止公開連線請執行 `tailscale funnel reset`。
+- 不使用公開反向代理或路由器 Port Forwarding，也不將 SQLite、備份、`.env`、原始 JSON、圖片或報價資料提交到 Git。
 - API 所有輸入由 Pydantic 驗證；業務錯誤統一為可理解的 JSON，不回傳 traceback。
 - 圖片上傳只接受 JPG、PNG、WebP，限制大小與尺寸，使用 UUID storage key，檔案位於 Web root 外；讀取只能依資料庫 media ID，並再次檢查路徑邊界。
 - CSV 以 UTF-8 BOM 下載，疑似試算表公式的開頭字元會加上單引號，避免公式注入。

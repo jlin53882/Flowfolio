@@ -10,7 +10,7 @@ Flowfolio 是單人、私人本機的工作與目標管理網站。它把接案�
 - 前端：Vite、原生 HTML/CSS、JavaScript ES Modules；正式服務由 FastAPI 提供編譯後靜態檔案。
 - 匯出：ReportLab PDF、UTF-8 BOM CSV，瀏覽器下載，不使用 `os.startfile()`。
 - 資料：金額以 TWD 整數儲存，工作時數以分鐘、目標進度以 Decimal 與自訂單位儲存；前端不作權威計價。
-- 網路：正式服務只監聽 `127.0.0.1`。遠端私人存取需由使用者確認後設定 Tailscale Serve，專案不會啟用 Funnel。
+- 網路：正式服務只監聽 `127.0.0.1`。私人存取使用 Tailscale Serve；若使用者明確需要手機不安裝 Tailscale 的公開網址，可執行 Tailscale Funnel 啟動腳本。
 
 ## 第一次啟動
 
@@ -36,6 +36,20 @@ uv run uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --wor
 ```
 
 開發模式會先建置前端，再以 loopback 啟動 FastAPI。正式啟動請使用 `scripts/windows/build-web.ps1` 及 `scripts/windows/start-prod.ps1`。
+
+若要比照 `hvac-inventory` 讓手機不安裝 Tailscale 也能從外網開啟，先啟動正式服務，再執行：
+
+```powershell
+.\scripts\windows\start-public-funnel.bat
+```
+
+Funnel 會產生公開的 HTTPS 網址；手機直接用瀏覽器開啟腳本輸出的 `https://...ts.net` 即可。公開網址的停止方式是：
+
+```powershell
+tailscale funnel reset
+```
+
+目前 Flowfolio 沒有登入驗證，公開 Funnel 只應在你確認資料可被公開存取時使用；網址不是登入權限。詳細流程與風險見 `docs/deployment-windows-tailscale.md` 與 `docs/security.md`。
 
 ## 舊資料匯入
 
@@ -92,7 +106,7 @@ Set-Location ..
 - `docs/architecture.md`：模組依賴、資料流與不採用的基礎設施。
 - `docs/data-model.md`、`docs/api-contract.md`：資料單位與 API 契約。
 - `docs/data-migration.md`：舊資料預覽、匯入、重跑與回復策略。
-- `docs/deployment-windows-tailscale.md`：Windows 與 Tailscale Serve 操作。
+- `docs/deployment-windows-tailscale.md`：Windows、Tailscale Serve 與 Funnel 操作。
 - `docs/backup-restore.md`、`docs/security.md`：備份還原與安全邊界。
 - `docs/maintenance.md`：日常維護、升級與故障排查。
 - `docs/frontend/css-audit.md`、`docs/frontend/design-system.md`：CSS 盤點、token、元件與響應式規範。

@@ -19,8 +19,9 @@ if (Get-Command uv -ErrorAction SilentlyContinue) {
 } else { $failures.Add("找不到 uv") }
 
 if (Get-Command tailscale -ErrorAction SilentlyContinue) {
-    Write-Host "Tailscale Serve 狀態：以下為本機查詢結果" -ForegroundColor Cyan
-    tailscale serve status
+    # Tailscale 1.98.x 的 Serve/Funnel 查詢會回傳同一份服務入口設定，避免重複列印。
+    Write-Host "Tailscale Serve／Funnel 狀態：以下為本機查詢結果" -ForegroundColor Cyan
+    tailscale funnel status
 } else { Write-Host "Tailscale：未安裝或不在 PATH，未驗證" -ForegroundColor Yellow }
 
 if ($failures.Count -gt 0) {

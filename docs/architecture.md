@@ -69,5 +69,5 @@ flowchart LR
 
 ## 私人存取
 
-正式 FastAPI 只 listen `127.0.0.1`；Tailscale Serve 只作 tailnet 內的 HTTPS 反向代理。Tailscale Funnel 是公開網際網路入口，本專案不會啟用。是否只允許本人，仍取決於 tailnet ACL、裝置安全與登入權限，不能把「在同一個 tailnet」直接等同本人。
+正式 FastAPI 只 listen `127.0.0.1`；Tailscale Serve 作為 tailnet 內的 HTTPS 反向代理，Tailscale Funnel 則是使用者明確啟用後的公開 HTTPS 入口。是否只允許本人，取決於使用哪一種入口、tailnet ACL、設備安全與應用程式登入權限；目前 Flowfolio 沒有登入驗證，不能把 Funnel 網址當作權限控制。
 
