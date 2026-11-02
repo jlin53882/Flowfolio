@@ -212,12 +212,7 @@ async function renderDashboard(outlet) {
       );
       dailyList.replaceChildren();
       if (!data.daily.length) {
-        const emptyActions = el("div", { className: "actions empty-actions" });
-        emptyActions.append(
-          button("新增待辦", "button primary small", () => (location.hash = "#/todos")),
-          button("新增目標", "button secondary small", () => (location.hash = "#/practice")),
-        );
-        dailyList.append(emptyState("這一天還沒有安排", emptyActions));
+        dailyList.append(emptyState("這一天還沒有安排"));
       }
       data.daily.forEach((item) => {
         const title = item.kind === "todo" ? item.title : item.kind === "work" ? item.name : item.kind === "goal" ? item.title : item.piece;

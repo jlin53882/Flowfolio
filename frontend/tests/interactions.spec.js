@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-async function mockApi(page) {
+async function mockApi(page, options = {}) {
   await page.route("**/api/**", async (route) => {
     const url = new URL(route.request().url());
     let payload = [];
@@ -13,7 +13,7 @@ async function mockApi(page) {
         completed_goals: 1,
         completion_rate: 0,
         date: "2026-11-01",
-        daily: [{ kind: "goal", id: "goal-daily", title: "完成閱讀計畫", current_value: "3", target_value: "10", unit: "本", status: "active", completed: false }],
+        daily: options.emptyDaily ? [] : [{ kind: "goal", id: "goal-daily", title: "完成閱讀計畫", current_value: "3", target_value: "10", unit: "本", status: "active", completed: false }],
         recent: [],
       };
     } else if (url.pathname.endsWith("/goals")) {
@@ -72,6 +72,14 @@ test("總覽指定日期的安排包含目標並提供進度入口", async ({ pa
   await expect(page.getByText("完成閱讀計畫", { exact: true })).toBeVisible();
   await expect(page.getByText("進行中", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "查看目標", exact: true })).toBeVisible();
+});
+
+test("總覽沒有安排時只顯示空狀態", async ({ page }) => {
+  await mockApi(page, { emptyDaily: true });
+  await page.goto("/#/dashboard");
+  await expect(page.getByText("這一天還沒有安排", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "新增待辦", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "新增目標", exact: true })).toHaveCount(0);
 });
 
 test("目標頁面顯示進行中與已達成且不含計時器", async ({ page }) => {
