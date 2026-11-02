@@ -80,3 +80,10 @@ test("右上角 Logo 僅在總覽頁顯示", async ({ page }) => {
     await expect(page.locator(".brand img")).toHaveCount(0);
   }
 });
+
+test("作品集頁標題分成日常紀錄與作品集兩層", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/#/portfolio");
+  await expect(page.locator(".page-header .c-eyebrow")).toHaveText("日常紀錄");
+  await expect(page.locator(".page-header h1")).toHaveText("作品集");
+});

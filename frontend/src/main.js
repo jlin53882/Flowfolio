@@ -406,7 +406,7 @@ async function renderGoals(outlet) {
 }
 
 async function renderPortfolio(outlet) {
-  const frame = pageFrame("Portfolio", "私人作品集", "作品只存於本機資料目錄；圖片透過 media ID 取用，不暴露磁碟路徑。");
+  const frame = pageFrame("日常紀錄", "作品集", "作品只存於本機資料目錄；圖片透過 media ID 取用，不暴露磁碟路徑。");
   const layout = el("div", { className: "two-column portfolio-layout" }); const formCard = card(state.portfolioEditing ? "編輯作品資訊" : "新增作品"); const form = el("form", { className: "form-grid", id: "portfolio-form" }); const editing = state.portfolioEditing;
   form.append(field("日期", "date", "date", editing?.date || today(), { required: true }), field("時間", "time", "time", editing?.time || ""), field("作品名稱", "text", "project", editing?.project || "", { required: true }), field("分類", "text", "category", editing?.category || "未分類"), field("內容摘要", "textarea", "content", editing?.content || "", { rows: 5 }));
   const fileField = field("圖片（可多選）", "file", "files", "", {}); fileField.querySelector("input").multiple = true; fileField.querySelector("input").accept = "image/jpeg,image/png,image/webp"; form.append(fileField); const actions = el("div", { className: "form-actions" }); actions.append(button(editing ? "儲存作品資訊" : "新增作品", "button primary", undefined, "submit")); if (editing) actions.append(button("取消編輯", "button secondary", () => { state.portfolioEditing = null; renderShell(); })); form.append(actions); formCard.append(form);
