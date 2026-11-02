@@ -56,6 +56,16 @@ test("作品集只使用日期不顯示時間", async ({ page }) => {
   await expect(page.locator(".portfolio-card .muted")).not.toContainText("12:00");
 });
 
+test("工作紀錄可以輸入自訂工作性質", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/#/works");
+  const workType = page.getByLabel("工作性質", { exact: true });
+  await expect(workType).toHaveAttribute("type", "text");
+  await expect(page.locator('select[name="type"]')).toHaveCount(0);
+  await workType.fill("顧問");
+  await expect(workType).toHaveValue("顧問");
+});
+
 test("已移除的報價舊路由會回到總覽", async ({ page }) => {
   await mockApi(page);
   await page.goto("/#/quotes");

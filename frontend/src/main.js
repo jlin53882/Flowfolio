@@ -65,19 +65,6 @@ function field(label, type, name, value = "", options = {}) {
   return wrapper;
 }
 
-function selectField(label, name, options, value) {
-  const wrapper = el("label", { className: "c-field" });
-  wrapper.append(el("span", { className: "c-field-label", text: label }));
-  const select = el("select", { className: "c-input", name });
-  options.forEach(([optionValue, optionLabel]) => {
-    const option = el("option", { value: optionValue, text: optionLabel });
-    if (String(optionValue) === String(value)) option.selected = true;
-    select.append(option);
-  });
-  wrapper.append(select);
-  return wrapper;
-}
-
 function setValue(container, selector, value) {
   const target = container.querySelector(selector);
   if (target) target.value = value ?? "";
@@ -243,7 +230,7 @@ async function renderDashboard(outlet) {
 
 function workForm(editing = null) {
   const form = el("form", { className: "form-grid", id: "work-form" });
-  form.append(field("日期", "date", "date", editing?.date || today(), { required: true }), field("工作名稱", "text", "name", editing?.name || "", { required: true, placeholder: "例如：品牌視覺整理" }), selectField("工作類型", "type", [["一般", "一般"], ["攝影", "攝影"], ["設計", "設計"], ["活動", "活動"], ["音樂", "音樂"]], editing?.type || "一般"), field("收入（TWD）", "number", "income", editing?.income || "0", { min: 0, step: 1 }), field("工作時數", "number", "hours", editing?.hours || "0", { min: 0, step: 0.25 }), field("備註", "textarea", "notes", editing?.notes || "", { rows: 3 }));
+  form.append(field("日期", "date", "date", editing?.date || today(), { required: true }), field("工作名稱", "text", "name", editing?.name || "", { required: true, placeholder: "例如：品牌視覺整理" }), field("工作性質", "text", "type", editing?.type || "一般", { required: true, placeholder: "例如：顧問、教學、維護" }), field("收入（TWD）", "number", "income", editing?.income || "0", { min: 0, step: 1 }), field("工作時數", "number", "hours", editing?.hours || "0", { min: 0, step: 0.25 }), field("備註", "textarea", "notes", editing?.notes || "", { rows: 3 }));
   const actions = el("div", { className: "form-actions" });
   actions.append(button(editing ? "儲存修改" : "新增工作", "button primary", undefined, "submit"));
   if (editing) actions.append(button("取消編輯", "button secondary", () => { state.workEditing = null; renderShell(); }));
