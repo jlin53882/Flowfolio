@@ -69,7 +69,7 @@ test("總覽指定日期的安排包含目標並提供進度入口", async ({ pa
 test("目標頁面顯示進行中與已達成且不含計時器", async ({ page }) => {
   await mockApi(page);
   await page.goto("/#/practice");
-  await expect(page.locator("#page h1")).toHaveText("目標進度");
+  await expect(page.locator("#page h1")).toHaveText("目標紀錄與回報");
   await expect(page.getByRole("heading", { name: "進行中目標", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "已達成", exact: true })).toBeVisible();
   await expect(page.locator(".goal-card")).toHaveCount(2);

@@ -365,7 +365,7 @@ function renderGoalCard(item, onChanged) {
 }
 
 async function renderGoals(outlet) {
-  const frame = pageFrame("Goals", "目標進度", "不限鋼琴，建立學習、工作、健康與生活中的各種目標。");
+  const frame = pageFrame("Goals", "目標紀錄與回報", "不限鋼琴，建立學習、工作、健康與生活中的各種目標。");
   const layout = el("div", { className: "goal-layout" });
   const editor = card(state.goalEditing ? "編輯目標" : "建立新目標", "設定名稱、類別與日期，完成後可標記為已達成。");
   editor.append(goalForm(state.goalEditing));
