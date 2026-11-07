@@ -58,20 +58,15 @@ tailscale serve status
 
 這個流程參考 `hvac-inventory` 的 `外網啟動.bat`，但不複製它的 Discord webhook 或固定個人網域。Flowfolio 會從目前 Tailscale 狀態讀取網址並寫入 `reports/public-funnel.log`。
 
-先啟動正式服務：
+直接在 PowerShell 執行或雙擊：
 
-```powershell
-.\scripts\windows\build-web.ps1
-.\scripts\windows\start-prod.ps1
-```
-
-再開另一個 PowerShell 或雙擊：
+啟動腳本會自動啟動正式服務：
 
 ```powershell
 .\scripts\windows\啟動Flowfolio公開網站.bat
 ```
 
-腳本會依序確認 `127.0.0.1:8000/health`、Tailscale 連線，再執行 `tailscale funnel --yes --bg 8000`，最後顯示手機可用的 `https://...ts.net` 網址。手機不需要安裝 Tailscale，使用瀏覽器即可。
+腳本會先確認 Tailscale 連線，自動以背景程序啟動正式服務，等待 `127.0.0.1:8000/health` 通過後，再執行 `tailscale funnel --yes --bg 8000`，最後顯示手機可用的 `https://...ts.net` 網址。手機不需要安裝 Tailscale，使用瀏覽器即可。
 
 第一次啟用 Funnel 時，Tailscale 可能會在終端機顯示 `https://login.tailscale.com/f/funnel?...` 授權網址。請由 tailnet 管理者開啟該網址並核准 Funnel；這是一次性的 tailnet 公開權限設定，核准前不會產生可用的公開網址。
 

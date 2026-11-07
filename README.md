@@ -37,7 +37,7 @@ uv run uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --wor
 
 開發模式會先建置前端，再以 loopback 啟動 FastAPI。正式啟動請使用 `scripts/windows/build-web.ps1` 及 `scripts/windows/start-prod.ps1`。
 
-若要比照 `hvac-inventory` 讓手機不安裝 Tailscale 也能從外網開啟，先啟動正式服務，再執行：
+若要比照 `hvac-inventory` 讓手機不安裝 Tailscale 也能從外網開啟，直接執行以下啟動腳本即可；腳本會自動啟動本機 `127.0.0.1:8000` 與公開 Funnel：
 
 ```powershell
 .\scripts\windows\啟動Flowfolio公開網站.bat

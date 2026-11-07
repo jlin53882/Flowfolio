@@ -37,6 +37,46 @@ function Invoke-TailscaleCommand {
     return @($output)
 }
 
+function Test-LocalService {
+    try {
+        $health = Invoke-RestMethod -Uri "http://127.0.0.1:$Port/health" -TimeoutSec 3
+        return $health.status -eq "ok"
+    } catch {
+        return $false
+    }
+}
+
+function Start-LocalService {
+    if (Test-LocalService) {
+        Write-Log "本機服務已在執行（127.0.0.1:$Port）。" Green
+        return
+    }
+
+    if ($Port -ne 8000) {
+        throw "自動啟動正式服務目前只支援 Port 8000。"
+    }
+
+    $serverScript = Join-Path $PSScriptRoot "start-prod.ps1"
+    if (-not (Test-Path -LiteralPath $serverScript)) {
+        throw "找不到正式服務啟動腳本：$serverScript"
+    }
+
+    Write-Log "尚未找到本機服務，正在背景啟動 127.0.0.1:8000。" Yellow
+    $quotedServerScript = '"{0}"' -f $serverScript
+    $serverProcess = Start-Process -FilePath "powershell.exe" -ArgumentList @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $quotedServerScript) -WorkingDirectory $Root -WindowStyle Hidden -PassThru
+    Write-Log "正式服務啟動程序已建立（PID：$($serverProcess.Id)），等待健康檢查。" Cyan
+
+    for ($attempt = 1; $attempt -le 30; $attempt++) {
+        Start-Sleep -Seconds 1
+        if (Test-LocalService) {
+            Write-Log "本機服務已就緒（127.0.0.1:8000）。" Green
+            return
+        }
+    }
+
+    throw "本機服務在 30 秒內沒有通過健康檢查，請查看 reports\server-prod.log。"
+}
+
 try {
     $TailscalePath = $null
     $tailscaleCommand = Get-Command tailscale -ErrorAction SilentlyContinue
@@ -49,28 +89,14 @@ try {
         throw "找不到 Tailscale CLI，請先確認 Tailscale 已安裝並已加入 PATH。"
     }
 
-    $listener = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
-    if (-not $listener) {
-        throw "找不到本機 $Port 服務，請先執行 .\scripts\windows\start-prod.ps1。"
-    }
-
-    try {
-        $health = Invoke-RestMethod -Uri "http://127.0.0.1:$Port/health" -TimeoutSec 5
-    } catch {
-        throw "本機服務沒有通過健康檢查：$($_.Exception.Message)"
-    }
-    if ($health.status -ne "ok") {
-        throw "本機健康端點回應不是 ok，停止設定公開外網。"
-    }
-
     Write-Log "===== Flowfolio 公開外網啟動 $(Get-Date -Format o) =====" Cyan
-    Write-Log "本機服務：正常（127.0.0.1:$Port）" Green
     Write-Log "確認 Tailscale 連線：" Cyan
     $tailscaleIp = Invoke-TailscaleCommand @("ip", "-4")
     if (-not $tailscaleIp) {
         throw "Tailscale 尚未連線，請先從 Tailscale 圖示登入並確認 Connected。"
     }
 
+    Start-LocalService
     Write-Log "啟動 Tailscale Funnel；這會讓網址公開到網際網路。" Yellow
     # 使用 --yes 跳過命令列更新提示；首次使用仍可能需要開啟 Tailscale 授權頁一次。
     Invoke-TailscaleCommand @("funnel", "--yes", "--bg", $Port) | Out-Null
