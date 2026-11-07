@@ -55,6 +55,7 @@ test("手機版導覽與鍵盤焦點可用", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await mockApi(page);
   await page.goto("/#/dashboard");
+  await page.getByRole("button", { name: "開啟手機導覽" }).click();
   await expect(page.locator(".mobile-nav")).toBeVisible();
   await page.keyboard.press("Tab");
   await expect(page.locator(":focus")).toBeVisible();

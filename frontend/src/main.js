@@ -136,17 +136,30 @@ function renderShell() {
         <div class="sidebar-footer"><span class="status-dot"></span><span>私人本機模式</span></div>
       </aside>
       <main class="main-content">${dashboardHeaderBrandMarkup}<div id="page"></div></main>
+      <button class="mobile-menu-toggle" type="button" aria-label="開啟手機導覽" aria-expanded="false"><span></span><span></span><span></span></button>
       <nav class="mobile-nav" aria-label="手機導覽"></nav>
     </div>
     <div id="toast-area" aria-live="polite"></div>
   `;
   const sidebarNav = app.querySelector(".sidebar-nav");
   const mobileNav = app.querySelector(".mobile-nav");
+  const mobileMenuToggle = app.querySelector(".mobile-menu-toggle");
+  const appShell = app.querySelector(".app-shell");
+  mobileMenuToggle.addEventListener("click", () => {
+    const isOpen = appShell.classList.toggle("mobile-menu-open");
+    mobileMenuToggle.setAttribute("aria-expanded", String(isOpen));
+    mobileMenuToggle.setAttribute("aria-label", isOpen ? "關閉手機導覽" : "開啟手機導覽");
+  });
   navItems.forEach(([key, label, icon]) => {
     const link = el("a", { className: `nav-link ${active === key ? "active" : ""}`, href: `#/${key}`, "aria-label": label, title: label });
     link.append(el("span", { className: "nav-icon", text: icon }), el("span", { text: label }));
     sidebarNav.append(link);
     const mobileLink = el("a", { className: active === key ? "active" : "", href: `#/${key}`, "aria-label": label });
+    mobileLink.addEventListener("click", () => {
+      appShell.classList.remove("mobile-menu-open");
+      mobileMenuToggle.setAttribute("aria-expanded", "false");
+      mobileMenuToggle.setAttribute("aria-label", "開啟手機導覽");
+    });
     mobileLink.append(el("span", { text: icon }), el("small", { text: label }));
     mobileNav.append(mobileLink);
   });
