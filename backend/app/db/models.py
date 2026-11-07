@@ -143,7 +143,8 @@ class Goal(Base, TimestampMixin):
     progress_logs: Mapped[list[GoalProgressLog]] = relationship(
         back_populates="goal",
         cascade="all, delete-orphan",
-        order_by="GoalProgressLog.record_date.desc(), GoalProgressLog.created_at.desc()",
+        # 進度回報以實際建立時間為主，避免補登較早日期時被初始進度蓋過。
+        order_by="GoalProgressLog.created_at.desc(), GoalProgressLog.record_date.desc()",
     )
 
 
