@@ -19,7 +19,7 @@
 | --- | --- | --- |
 | GET | `/health` | 非敏感健康檢查 |
 | GET | `/api/v1/dashboard?month=YYYY-MM&selected_date=YYYY-MM-DD` | 收入、工作、目標、完成率與指定日清單；目標依 `due_date` 納入 |
-| GET/POST | `/api/v1/works` | 工作、志工、演出、比賽等日常紀錄列表與新增；`type` 可使用預設或自訂性質 |
+| GET/POST | `/api/v1/works` | 工作、志工、演出、比賽等日常紀錄列表與新增；`type` 可使用預設或自訂性質，前端年月必填、日可省略 |
 | GET/PATCH/DELETE | `/api/v1/works/{id}` | 工作單筆操作 |
 | GET/POST | `/api/v1/todos` | 待辦列表與新增；可用 `on_date` 篩選 |
 | PATCH/DELETE | `/api/v1/todos/{id}` | 待辦更新與刪除 |

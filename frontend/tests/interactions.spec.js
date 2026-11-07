@@ -59,6 +59,10 @@ test("作品集只使用日期不顯示時間", async ({ page }) => {
 test("工作紀錄可以選擇志工、演出、比賽或輸入自訂性質", async ({ page }) => {
   await mockApi(page);
   await page.goto("/#/works");
+  await expect(page.getByLabel("年月", { exact: true })).toHaveAttribute("required", "true");
+  await expect(page.getByLabel("日（選填）", { exact: true })).not.toHaveAttribute("required");
+  await expect(page.getByLabel("收入（TWD，選填）", { exact: true })).not.toHaveAttribute("required");
+  await expect(page.getByLabel("投入時數（選填）", { exact: true })).not.toHaveAttribute("required");
   const workType = page.getByLabel("紀錄性質", { exact: true });
   await expect(workType).toHaveAttribute("type", "text");
   await expect(page.locator('select[name="type"]')).toHaveCount(0);

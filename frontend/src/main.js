@@ -244,11 +244,14 @@ async function renderDashboard(outlet) {
 
 function workForm(editing = null) {
   const form = el("form", { className: "form-grid", id: "work-form" });
+  const editingDate = editing?.date || today();
+  const [editingYear, editingMonthNumber, editingDay] = editingDate.split("-");
+  const editingMonth = `${editingYear}-${editingMonthNumber}`;
   const typeField = field("紀錄性質", "text", "type", editing?.type || "工作", { required: true, list: "work-type-options", placeholder: "選擇或輸入：工作、志工、演出、比賽" });
   const typeOptions = el("datalist", { id: "work-type-options" });
   ["工作", "志工", "演出", "比賽", "學習", "會議", "其他"].forEach((value) => typeOptions.append(el("option", { value })));
   typeField.append(typeOptions);
-  form.append(field("日期", "date", "date", editing?.date || today(), { required: true }), field("紀錄名稱", "text", "name", editing?.name || "", { required: true, placeholder: "例如：品牌視覺整理、社區服務、校際演出" }), typeField, field("收入（TWD）", "number", "income", editing?.income || "0", { min: 0, step: 1 }), field("投入時數", "number", "hours", editing?.hours || "0", { min: 0, step: 0.25 }), field("備註", "textarea", "notes", editing?.notes || "", { rows: 3 }));
+  form.append(field("年月", "month", "month", editingMonth, { required: true }), field("日（選填）", "number", "day", editingDay, { min: 1, max: 31, step: 1, placeholder: "留空則記為該月 1 日" }), field("紀錄名稱", "text", "name", editing?.name || "", { required: true, placeholder: "例如：品牌視覺整理、社區服務、校際演出" }), typeField, field("收入（TWD，選填）", "number", "income", editing?.income || "0", { min: 0, step: 1 }), field("投入時數（選填）", "number", "hours", editing?.hours || "0", { min: 0, step: 0.25 }), field("備註", "textarea", "notes", editing?.notes || "", { rows: 3 }));
   const actions = el("div", { className: "form-actions" });
   actions.append(button(editing ? "儲存修改" : "新增工作", "button primary", undefined, "submit"));
   if (editing) actions.append(button("取消編輯", "button secondary", () => { state.workEditing = null; renderShell(); }));
@@ -272,7 +275,9 @@ async function renderWorks(outlet) {
   const form = frame.querySelector("#work-form");
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const body = { date: getValue(form, '[name="date"]'), name: getValue(form, '[name="name"]'), type: getValue(form, '[name="type"]'), income: getValue(form, '[name="income"]') || "0", hours: getValue(form, '[name="hours"]') || "0", notes: getValue(form, '[name="notes"]') };
+    const month = getValue(form, '[name="month"]');
+    const day = getValue(form, '[name="day"]') || "01";
+    const body = { date: `${month}-${day.padStart(2, "0")}`, name: getValue(form, '[name="name"]'), type: getValue(form, '[name="type"]'), income: getValue(form, '[name="income"]') || "0", hours: getValue(form, '[name="hours"]') || "0", notes: getValue(form, '[name="notes"]') };
     try {
       await api(state.workEditing ? `/api/v1/works/${state.workEditing.id}` : "/api/v1/works", { method: state.workEditing ? "PATCH" : "POST", body });
       toast(state.workEditing ? "工作紀錄已更新" : "工作紀錄已新增");
