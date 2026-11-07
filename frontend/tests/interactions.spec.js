@@ -56,12 +56,15 @@ test("作品集只使用日期不顯示時間", async ({ page }) => {
   await expect(page.locator(".portfolio-card .muted")).not.toContainText("12:00");
 });
 
-test("工作紀錄可以輸入自訂工作性質", async ({ page }) => {
+test("工作紀錄可以選擇志工、演出、比賽或輸入自訂性質", async ({ page }) => {
   await mockApi(page);
   await page.goto("/#/works");
-  const workType = page.getByLabel("工作性質", { exact: true });
+  const workType = page.getByLabel("紀錄性質", { exact: true });
   await expect(workType).toHaveAttribute("type", "text");
   await expect(page.locator('select[name="type"]')).toHaveCount(0);
+  await expect(page.locator("#work-type-options option")).toHaveCount(7);
+  await workType.fill("志工");
+  await expect(workType).toHaveValue("志工");
   await workType.fill("顧問");
   await expect(workType).toHaveValue("顧問");
 });

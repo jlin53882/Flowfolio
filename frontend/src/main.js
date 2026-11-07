@@ -53,6 +53,7 @@ function field(label, type, name, value = "", options = {}) {
     type: type === "textarea" ? undefined : type,
     value: type === "textarea" ? undefined : value,
     placeholder: options.placeholder,
+    list: options.list,
     min: options.min,
     max: options.max,
     step: options.step,
@@ -243,7 +244,11 @@ async function renderDashboard(outlet) {
 
 function workForm(editing = null) {
   const form = el("form", { className: "form-grid", id: "work-form" });
-  form.append(field("日期", "date", "date", editing?.date || today(), { required: true }), field("工作名稱", "text", "name", editing?.name || "", { required: true, placeholder: "例如：品牌視覺整理" }), field("工作性質", "text", "type", editing?.type || "一般", { required: true, placeholder: "例如：顧問、教學、維護" }), field("收入（TWD）", "number", "income", editing?.income || "0", { min: 0, step: 1 }), field("工作時數", "number", "hours", editing?.hours || "0", { min: 0, step: 0.25 }), field("備註", "textarea", "notes", editing?.notes || "", { rows: 3 }));
+  const typeField = field("紀錄性質", "text", "type", editing?.type || "工作", { required: true, list: "work-type-options", placeholder: "選擇或輸入：工作、志工、演出、比賽" });
+  const typeOptions = el("datalist", { id: "work-type-options" });
+  ["工作", "志工", "演出", "比賽", "學習", "會議", "其他"].forEach((value) => typeOptions.append(el("option", { value })));
+  typeField.append(typeOptions);
+  form.append(field("日期", "date", "date", editing?.date || today(), { required: true }), field("紀錄名稱", "text", "name", editing?.name || "", { required: true, placeholder: "例如：品牌視覺整理、社區服務、校際演出" }), typeField, field("收入（TWD）", "number", "income", editing?.income || "0", { min: 0, step: 1 }), field("投入時數", "number", "hours", editing?.hours || "0", { min: 0, step: 0.25 }), field("備註", "textarea", "notes", editing?.notes || "", { rows: 3 }));
   const actions = el("div", { className: "form-actions" });
   actions.append(button(editing ? "儲存修改" : "新增工作", "button primary", undefined, "submit"));
   if (editing) actions.append(button("取消編輯", "button secondary", () => { state.workEditing = null; renderShell(); }));
