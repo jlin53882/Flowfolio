@@ -40,7 +40,7 @@ uv run uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --wor
 若要比照 `hvac-inventory` 讓手機不安裝 Tailscale 也能從外網開啟，先啟動正式服務，再執行：
 
 ```powershell
-.\scripts\windows\start-public-funnel.bat
+.\scripts\windows\啟動Flowfolio公開網站.bat
 ```
 
 Funnel 會產生公開的 HTTPS 網址；手機直接用瀏覽器開啟腳本輸出的 `https://...ts.net` 即可。公開網址的停止方式是：

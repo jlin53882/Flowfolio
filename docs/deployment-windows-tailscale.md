@@ -68,7 +68,7 @@ tailscale serve status
 再開另一個 PowerShell 或雙擊：
 
 ```powershell
-.\scripts\windows\start-public-funnel.bat
+.\scripts\windows\啟動Flowfolio公開網站.bat
 ```
 
 腳本會依序確認 `127.0.0.1:8000/health`、Tailscale 連線，再執行 `tailscale funnel --yes --bg 8000`，最後顯示手機可用的 `https://...ts.net` 網址。手機不需要安裝 Tailscale，使用瀏覽器即可。

@@ -2,7 +2,7 @@
 
 ## 決定
 
-FastAPI 只監聽 loopback。私人連線使用 Tailscale Serve；若使用者明確需要手機不安裝 Tailscale，則透過 `start-public-funnel.bat` 啟用 Tailscale Funnel。程式不自動修改 tailnet ACL、防火牆或電源政策；Funnel 不列為預設啟動流程。
+FastAPI 只監聽 loopback。私人連線使用 Tailscale Serve；若使用者明確需要手機不安裝 Tailscale，則透過 `啟動Flowfolio公開網站.bat` 啟用 Tailscale Funnel。程式不自動修改 tailnet ACL、防火牆或電源政策；Funnel 不列為預設啟動流程。
 
 ## 原因
 

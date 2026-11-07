@@ -43,7 +43,7 @@ Set-Location ..
 5. 開啟「目標紀錄與回報」頁面，建立不同類型目標，手動更新狀態，完成後檢查移至已達成區塊。
 6. 設定頁下載 JSON、建立備份，確認外部移轉來源沒有變化。
 7. 在 360px、390px、768px、1024px、1440px 寬度檢查側欄／底部導覽與表格可讀性。
-8. 需要手機公開連線時，先確認本機健康端點，再執行 `scripts/windows/start-public-funnel.bat`；用手機瀏覽器驗證腳本輸出的 HTTPS 網址，結束後執行 `tailscale funnel reset`。
+8. 需要手機公開連線時，先確認本機健康端點，再執行 `scripts/windows/啟動Flowfolio公開網站.bat`；用手機瀏覽器驗證腳本輸出的 HTTPS 網址，結束後執行 `tailscale funnel reset`。
 
 ## 尚未宣稱的驗證
 
