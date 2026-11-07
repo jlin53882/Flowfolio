@@ -1,4 +1,4 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 
 $tailscaleCommand = Get-Command tailscale -ErrorAction SilentlyContinue
 if ($tailscaleCommand) {
