@@ -25,6 +25,16 @@ flowchart LR
 - 執行 `verify-deployment.ps1`，查看 loopback 健康與資料庫版本。
 - 清理過期暫存檔與 orphan media 前先建立備份，不要直接批次刪除使用者資料。
 
+## Windows 公開網站健康監控
+
+若已使用 Tailscale Funnel 提供手機公開網址，建議安裝每 10 分鐘執行一次的本機健康監控：
+
+```powershell
+.\scripts\windows\安裝Flowfolio健康監控.bat
+```
+
+監控排程名稱是 `Flowfolio-健康監控`，會檢查 `127.0.0.1:8000/health` 與目前 Funnel 的公開 `/health`。失敗時會嘗試重新啟動正式服務與 Funnel。完整流程圖、手動驗證和解除方式見 `docs/健康監控維護.md`。
+
 ## 故障排查
 
 1. 先看 `/health` 與啟動命令輸出。

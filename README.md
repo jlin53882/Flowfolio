@@ -51,6 +51,14 @@ tailscale funnel reset
 
 目前 Flowfolio 沒有登入驗證，公開 Funnel 只應在你確認資料可被公開存取時使用；網址不是登入權限。詳細流程與風險見 `docs/deployment-windows-tailscale.md` 與 `docs/security.md`。
 
+若希望網站長時間運作，可另外安裝每 10 分鐘執行一次的 Windows 健康監控。監控會檢查本機服務與公開 Funnel，失敗時嘗試自動恢復：
+
+```powershell
+.\scripts\windows\安裝Flowfolio健康監控.bat
+```
+
+詳細排程、解除方式與 Log 位置見 `docs/健康監控維護.md`。
+
 ## 舊資料匯入
 
 以下範例假設舊資料夾與 Flowfolio 位於同一層；若來源在其他位置，只需修改三個變數，不要把個人絕對路徑寫進 Git。
@@ -107,6 +115,7 @@ Set-Location ..
 - `docs/data-model.md`、`docs/api-contract.md`：資料單位與 API 契約。
 - `docs/data-migration.md`：舊資料預覽、匯入、重跑與回復策略。
 - `docs/deployment-windows-tailscale.md`：Windows、Tailscale Serve 與 Funnel 操作。
+- `docs/健康監控維護.md`：每 10 分鐘健康檢查、復原排程與 Log。
 - `docs/backup-restore.md`、`docs/security.md`：備份還原與安全邊界。
 - `docs/maintenance.md`：日常維護、升級與故障排查。
 - `docs/frontend/css-audit.md`、`docs/frontend/design-system.md`：CSS 盤點、token、元件與響應式規範。
