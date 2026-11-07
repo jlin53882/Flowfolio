@@ -12,6 +12,8 @@ class StrictModel(BaseModel):
 
 class WorkCreate(StrictModel):
     date: DateType = Field(default_factory=DateType.today)
+    month: str | None = Field(default=None, pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
+    day: int | None = Field(default=None, ge=0, le=31)
     name: str = Field(min_length=1, max_length=200)
     type: str = Field(default="一般", min_length=1, max_length=80)
     income: Decimal = Field(default=Decimal("0"), ge=0)
@@ -23,6 +25,8 @@ class WorkCreate(StrictModel):
 
 class WorkPatch(StrictModel):
     date: DateType | None = None
+    month: str | None = Field(default=None, pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
+    day: int | None = Field(default=None, ge=0, le=31)
     name: str | None = Field(default=None, min_length=1, max_length=200)
     type: str | None = Field(default=None, min_length=1, max_length=80)
     income: Decimal | None = Field(default=None, ge=0)

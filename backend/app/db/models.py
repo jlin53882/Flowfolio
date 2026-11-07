@@ -88,6 +88,9 @@ class WorkRecord(Base, TimestampMixin):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    # date 保留有效日期作為相容排序；record_day=0 代表整個月份。
+    record_month: Mapped[str] = mapped_column(String(7), nullable=False, index=True)
+    record_day: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     work_type: Mapped[str] = mapped_column(String(80), nullable=False, default="一般")
     income_minor: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

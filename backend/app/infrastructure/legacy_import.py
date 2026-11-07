@@ -172,8 +172,11 @@ def run_legacy_import(
             copied: list[Path] = []
             try:
                 if category == "works":
+                    work_date = parse_date(raw.get("date"))
                     item = WorkRecord(
-                        date=parse_date(raw.get("date")),
+                        date=work_date,
+                        record_month=work_date.strftime("%Y-%m"),
+                        record_day=work_date.day,
                         name=str(raw.get("name") or raw.get("title") or "未命名工作").strip(),
                         work_type=str(raw.get("type") or "一般").strip(),
                         income_minor=money_to_minor(decimal(raw.get("income", 0), "收入"), "收入"),

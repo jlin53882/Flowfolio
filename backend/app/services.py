@@ -64,10 +64,23 @@ def time_str(value: time | None) -> str | None:
     return value.strftime("%H:%M") if value else None
 
 
+def _work_date_from_month(month: str, day: int | None) -> tuple[date, int]:
+    """將年月與日期轉成可排序的日期；日為 0 時以該月 1 日作內部索引。"""
+    try:
+        month_date = datetime.strptime(month, "%Y-%m").date().replace(day=1)
+        if not day:
+            return month_date, 0
+        return month_date.replace(day=day), day
+    except ValueError as exc:
+        raise DomainError("紀錄日期不正確", 422, "invalid_work_date") from exc
+
+
 def work_to_dict(item: WorkRecord) -> dict[str, Any]:
     return {
         "id": item.id,
         "date": item.date.isoformat(),
+        "month": item.record_month,
+        "day": item.record_day,
         "name": item.name,
         "type": item.work_type,
         "income": money_str(item.income_minor),
@@ -212,8 +225,17 @@ def get_work(db: Session, item_id: str) -> WorkRecord:
 
 
 def create_work(db: Session, payload: WorkCreate) -> dict[str, Any]:
+    if payload.month:
+        record_date, record_day = _work_date_from_month(payload.month, payload.day)
+        record_month = payload.month
+    else:
+        record_date = payload.date
+        record_month = record_date.strftime("%Y-%m")
+        record_day = record_date.day
     item = WorkRecord(
-        date=payload.date,
+        date=record_date,
+        record_month=record_month,
+        record_day=record_day,
         name=payload.name.strip(),
         work_type=payload.type.strip(),
         income_minor=money_to_minor(payload.income, "收入"),
@@ -231,8 +253,17 @@ def create_work(db: Session, payload: WorkCreate) -> dict[str, Any]:
 def update_work(db: Session, item_id: str, payload: WorkPatch) -> dict[str, Any]:
     item = get_work(db, item_id)
     data = payload.model_dump(exclude_unset=True)
-    if "date" in data:
+    if "month" in data and data["month"] is not None:
+        item.date, item.record_day = _work_date_from_month(
+            data["month"], data.get("day", item.record_day)
+        )
+        item.record_month = data["month"]
+    elif "day" in data:
+        item.date, item.record_day = _work_date_from_month(item.record_month, data["day"])
+    elif "date" in data and data["date"] is not None:
         item.date = data["date"]
+        item.record_month = item.date.strftime("%Y-%m")
+        item.record_day = item.date.day
     if "name" in data:
         item.name = data["name"].strip()
     if "type" in data:

@@ -75,6 +75,11 @@ function getValue(container, selector) {
   return container.querySelector(selector)?.value?.trim() || "";
 }
 
+function workDateText(item) {
+  if (Number(item.day) === 0 && item.month) return `${item.month.replace("-", "/")}/00`;
+  return dateText(item.date);
+}
+
 function formatError(error) {
   if (error instanceof ApiError) return error.message;
   return "目前無法完成操作，請確認後端服務仍在執行。";
@@ -245,8 +250,8 @@ async function renderDashboard(outlet) {
 function workForm(editing = null) {
   const form = el("form", { className: "form-grid", id: "work-form" });
   const editingDate = editing?.date || today();
-  const [editingYear, editingMonthNumber, editingDay] = editingDate.split("-");
-  const editingMonth = `${editingYear}-${editingMonthNumber}`;
+  const editingMonth = editing?.month || editingDate.slice(0, 7);
+  const editingDay = editing ? String(editing.day ?? Number(editingDate.slice(8, 10))) : "";
   const typeField = field("紀錄性質", "text", "type", editing?.type || "工作", { required: true, list: "work-type-options", placeholder: "選擇或輸入：工作、志工、演出、比賽" });
   const typeOptions = el("datalist", { id: "work-type-options" });
   ["工作", "志工", "演出", "比賽", "學習", "會議", "其他"].forEach((value) => typeOptions.append(el("option", { value })));
@@ -276,8 +281,8 @@ async function renderWorks(outlet) {
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const month = getValue(form, '[name="month"]');
-    const day = getValue(form, '[name="day"]') || "01";
-    const body = { date: `${month}-${day.padStart(2, "0")}`, name: getValue(form, '[name="name"]'), type: getValue(form, '[name="type"]'), income: getValue(form, '[name="income"]') || "0", hours: getValue(form, '[name="hours"]') || "0", notes: getValue(form, '[name="notes"]') };
+    const day = getValue(form, '[name="day"]');
+    const body = { date: `${month}-01`, month, day: day ? Number(day) : 0, name: getValue(form, '[name="name"]'), type: getValue(form, '[name="type"]'), income: getValue(form, '[name="income"]') || "0", hours: getValue(form, '[name="hours"]') || "0", notes: getValue(form, '[name="notes"]') };
     try {
       await api(state.workEditing ? `/api/v1/works/${state.workEditing.id}` : "/api/v1/works", { method: state.workEditing ? "PATCH" : "POST", body });
       toast(state.workEditing ? "工作紀錄已更新" : "工作紀錄已新增");
@@ -302,7 +307,7 @@ function renderWorkTable(container, items) {
   const body = el("tbody", {});
   items.forEach((item) => {
     const row = el("tr", {});
-    row.append(el("td", { text: dateText(item.date) }), el("td", {}, [el("strong", { text: item.name }), el("small", { className: "table-note", text: item.notes || "" })]), el("td", { text: item.type }), el("td", { className: "numeric", text: money(item.income) }), el("td", { className: "numeric", text: `${Number(item.hours || 0).toFixed(2)} h` }));
+    row.append(el("td", { text: workDateText(item) }), el("td", {}, [el("strong", { text: item.name }), el("small", { className: "table-note", text: item.notes || "" })]), el("td", { text: item.type }), el("td", { className: "numeric", text: money(item.income) }), el("td", { className: "numeric", text: `${Number(item.hours || 0).toFixed(2)} h` }));
     const actions = el("td", { className: "actions" });
     actions.append(button("編輯", "button ghost small", () => { state.workEditing = item; renderShell(); }), button("刪除", "button danger small", async () => { if (!confirm("確定要刪除這筆工作紀錄嗎？")) return; try { await api(`/api/v1/works/${item.id}`, { method: "DELETE" }); toast("工作紀錄已刪除"); renderShell(); } catch (error) { toast(formatError(error), "error"); } }));
     row.append(actions); body.append(row);

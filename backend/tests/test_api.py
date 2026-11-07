@@ -57,6 +57,25 @@ def test_work_todo_practice_and_dashboard(client):
     assert goal_items[0]["current_value"] == "3"
 
 
+def test_work_can_be_recorded_for_an_entire_month(client):
+    response = client.post(
+        "/api/v1/works",
+        json={
+            "month": "2026-11",
+            "day": 0,
+            "name": "整月志工服務",
+            "type": "志工",
+        },
+    )
+    assert response.status_code == 201
+    body = response.json()
+    assert body["month"] == "2026-11"
+    assert body["day"] == 0
+    assert body["date"] == "2026-11-01"
+    assert body["income"] == "0"
+    assert body["hours"] == "0"
+
+
 def test_quote_unique_number_duplicate_and_exports(client):
     payload = {
         "quote_number": "Q-TEST-001",
