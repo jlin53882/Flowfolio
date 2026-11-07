@@ -256,7 +256,7 @@ function workForm(editing = null) {
   const typeOptions = el("datalist", { id: "work-type-options" });
   ["工作", "志工", "演出", "比賽", "學習", "會議", "其他"].forEach((value) => typeOptions.append(el("option", { value })));
   typeField.append(typeOptions);
-  form.append(field("年月", "month", "month", editingMonth, { required: true }), field("日（選填）", "number", "day", editingDay, { min: 1, max: 31, step: 1, placeholder: "留空則記為該月 1 日" }), field("紀錄名稱", "text", "name", editing?.name || "", { required: true, placeholder: "例如：品牌視覺整理、社區服務、校際演出" }), typeField, field("收入（TWD，選填）", "number", "income", editing?.income || "0", { min: 0, step: 1 }), field("投入時數（選填）", "number", "hours", editing?.hours || "0", { min: 0, step: 0.25 }), field("備註", "textarea", "notes", editing?.notes || "", { rows: 3 }));
+  form.append(field("年月", "month", "month", editingMonth, { required: true }), field("日（選填）", "number", "day", editingDay, { min: 1, max: 31, step: 1, placeholder: "留空則記為該月 0 日" }), field("紀錄名稱", "text", "name", editing?.name || "", { required: true, placeholder: "例如：品牌視覺整理、社區服務、校際演出" }), typeField, field("收入（TWD，選填）", "number", "income", editing?.income || "0", { min: 0, step: 1 }), field("投入時數（選填）", "number", "hours", editing?.hours || "0", { min: 0, step: 0.25 }), field("備註", "textarea", "notes", editing?.notes || "", { rows: 3 }));
   const actions = el("div", { className: "form-actions" });
   actions.append(button(editing ? "儲存修改" : "新增工作", "button primary", undefined, "submit"));
   if (editing) actions.append(button("取消編輯", "button secondary", () => { state.workEditing = null; renderShell(); }));
