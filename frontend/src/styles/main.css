@@ -221,7 +221,7 @@ td.numeric, th:nth-last-child(2) { text-align: right; }
 @media (max-width: 560px) {
   .sidebar { display: none; }
   .main-content { margin-left: 0; width: 100%; padding: 82px 15px 92px; }
-  .main-brand-photo { top: 190px; right: 15px; width: 112px; }
+  .main-brand-photo { top: 14px; right: 15px; width: 112px; }
   .mobile-menu-toggle { position: fixed; display: grid; place-items: center; gap: 4px; left: 14px; top: 14px; width: 44px; height: 44px; z-index: calc(var(--z-mobile-nav) + 2); border: 1px solid rgba(255, 255, 255, .82); border-radius: 12px; background: rgba(255, 255, 255, .62); color: #315d79; box-shadow: 0 8px 20px rgba(2, 9, 22, .2); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
   .mobile-menu-toggle span { display: block; width: 20px; height: 2px; border-radius: 99px; background: currentColor; transition: transform var(--motion-fast) ease, opacity var(--motion-fast) ease; }
   .mobile-menu-open .mobile-menu-toggle span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
