@@ -20,5 +20,5 @@ if errorlevel 1 (
 
 echo.
 echo Public Funnel is running in the background.
-echo Stop it with: tailscale funnel reset
+echo Stop it with: scripts\windows\stop-public-funnel.ps1
 pause

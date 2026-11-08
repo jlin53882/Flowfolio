@@ -4,7 +4,7 @@
 
 ```mermaid
 flowchart LR
-    Device[使用者 Windows 主機] --> Loopback[127.0.0.1:8000]
+    Device[使用者 Windows 主機] --> Loopback[預設 127.0.0.1:8000]
     Loopback --> App[Flowfolio FastAPI]
     App --> PrivateData[(SQLite、media、備份)]
     Tailnet[已驗證的 Tailscale tailnet] --> Serve[Tailscale Serve]
@@ -14,8 +14,8 @@ flowchart LR
     Browser[瀏覽器輸入／上傳] --> App
 ```
 
-- 正式服務只 bind `127.0.0.1`；私人 HTTPS 由 Tailscale Serve 提供，公開 HTTPS 只有在使用者明確執行 Funnel 啟動腳本時才啟用。
-- Funnel 會讓任何取得網址的人連線；Flowfolio 目前沒有登入驗證，因此不應把含私人資料的正式資料庫公開。停止公開連線請執行 `tailscale funnel reset`。
+- 正式服務預設 bind `127.0.0.1:8000`；實際值由 `.env` 的 `FLOWFOLIO_HOST`、`FLOWFOLIO_PORT` 與 `FLOWFOLIO_FUNNEL_PORT` 控制。私人 HTTPS 由 Tailscale Serve 提供，公開 HTTPS 只有在使用者明確執行 Funnel 啟動腳本時才啟用；不要把 host 改成公開網卡而沒有另外建立存取控制。
+- Funnel 會讓任何取得網址的人連線；Flowfolio 目前沒有登入驗證，因此不應把含私人資料的正式資料庫公開。停止公開連線請執行 `scripts/windows/stop-public-funnel.ps1`，不要使用會清除其他服務的 `tailscale funnel reset`。
 - 不使用公開反向代理或路由器 Port Forwarding，也不將 SQLite、備份、`.env`、原始 JSON、圖片或報價資料提交到 Git。
 - API 所有輸入由 Pydantic 驗證；業務錯誤統一為可理解的 JSON，不回傳 traceback。
 - 圖片上傳只接受 JPG、PNG、WebP，限制大小與尺寸，使用 UUID storage key，檔案位於 Web root 外；讀取只能依資料庫 media ID，並再次檢查路徑邊界。

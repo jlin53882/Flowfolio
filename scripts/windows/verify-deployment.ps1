@@ -2,17 +2,20 @@
 
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 Set-Location $Root
+. (Join-Path $PSScriptRoot "flowfolio-env.ps1")
+$FlowfolioSettings = Get-FlowfolioSettings -Root $Root
 $failures = New-Object System.Collections.Generic.List[string]
 
 if (-not (Test-Path (Join-Path $Root "frontend\dist\index.html"))) { $failures.Add("缺少 frontend/dist/index.html") }
-if (-not (Test-Path (Join-Path $Root "data"))) { New-Item -ItemType Directory -Force (Join-Path $Root "data") | Out-Null }
-if (-not (Test-Path (Join-Path $Root "data\backups"))) { New-Item -ItemType Directory -Force (Join-Path $Root "data\backups") | Out-Null }
+if (-not (Test-Path -LiteralPath $FlowfolioSettings.DataDir)) { New-Item -ItemType Directory -Force -Path $FlowfolioSettings.DataDir | Out-Null }
+$backupDirectory = Join-Path $FlowfolioSettings.DataDir "backups"
+if (-not (Test-Path -LiteralPath $backupDirectory)) { New-Item -ItemType Directory -Force -Path $backupDirectory | Out-Null }
 
 try {
-    $health = Invoke-RestMethod -Uri "http://127.0.0.1:8000/health" -TimeoutSec 5
+    $health = Invoke-RestMethod -Uri $FlowfolioSettings.LocalHealthUrl -TimeoutSec 5
     if ($health.status -ne "ok") { $failures.Add("健康端點回應不是 ok") }
     else { Write-Host "健康端點：正常" -ForegroundColor Green }
-} catch { $failures.Add("無法連線到 http://127.0.0.1:8000/health") }
+} catch { $failures.Add("無法連線到 $($FlowfolioSettings.LocalHealthUrl)") }
 
 if (Get-Command uv -ErrorAction SilentlyContinue) {
     uv run alembic current

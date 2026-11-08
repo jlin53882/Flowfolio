@@ -21,19 +21,19 @@ flowchart LR
 ## 每月檢查
 
 - 執行 `uv lock --upgrade` 前先查看版本相容性，更新後跑 pytest、ruff 與 Vite build。
-- 檢查 `data/backups` 是否有近期成功備份，抽樣驗證一份 ZIP 的 manifest。
+- 檢查 `.env` 的 `FLOWFOLIO_DATA_DIR\backups` 是否有近期成功備份，抽樣驗證一份 ZIP 的 manifest。
 - 執行 `verify-deployment.ps1`，查看 loopback 健康與資料庫版本。
 - 清理過期暫存檔與 orphan media 前先建立備份，不要直接批次刪除使用者資料。
 
 ## Windows 公開網站健康監控
 
-若已使用 Tailscale Funnel 提供手機公開網址，建議安裝每 10 分鐘執行一次的本機健康監控：
+若已使用 Tailscale Funnel 提供手機公開網址，建議安裝每 10 分鐘執行一次的本機健康監控；監控只檢查 `.env` 的 `FLOWFOLIO_FUNNEL_PORT`，不會把同一台電腦上的其他 Funnel 當成 Flowfolio：
 
 ```powershell
 .\scripts\windows\安裝Flowfolio健康監控.bat
 ```
 
-監控排程名稱是 `Flowfolio-健康監控`，會檢查 `127.0.0.1:8000/health` 與目前 Funnel 的公開 `/health`。失敗時會嘗試重新啟動正式服務與 Funnel。完整流程圖、手動驗證和解除方式見 `docs/健康監控維護.md`。
+監控排程名稱是 `Flowfolio-健康監控`，會依 `.env` 檢查本機 `/health` 與目前 Funnel 的公開 `/health`；預設本機端點是 `127.0.0.1:8000/health`。失敗時會嘗試重新啟動正式服務與 Funnel。完整流程圖、手動驗證和解除方式見 `docs/健康監控維護.md`。
 
 ## 故障排查
 

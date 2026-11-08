@@ -6,11 +6,14 @@ param(
 $ErrorActionPreference = "Continue"
 
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
+Set-Location $Root
+. (Join-Path $PSScriptRoot "flowfolio-env.ps1")
+$FlowfolioSettings = Get-FlowfolioSettings -Root $Root
 $ReportDirectory = Join-Path $Root "reports"
 $LogFile = Join-Path $ReportDirectory "health-monitor.log"
+$FunnelStateFile = Join-Path $ReportDirectory "flowfolio-funnel-state.json"
 $StartScript = Join-Path $PSScriptRoot "start-public-funnel.ps1"
-$Port = 8000
-$LocalHealthUrl = "http://127.0.0.1:$Port/health"
+$LocalHealthUrl = $FlowfolioSettings.LocalHealthUrl
 $TailscalePath = "C:\Program Files\Tailscale\tailscale.exe"
 $MutexName = "Local\Flowfolio-Health-Monitor"
 
@@ -51,21 +54,28 @@ function Get-FunnelHealthUrl {
     if (-not (Test-Path -LiteralPath $TailscalePath)) {
         return $null
     }
+    if (-not (Test-Path -LiteralPath $FunnelStateFile)) {
+        return $null
+    }
 
     try {
+        $funnelState = Get-Content -LiteralPath $FunnelStateFile -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ([int]$funnelState.FunnelPort -ne $FlowfolioSettings.FunnelPort -or [int]$funnelState.LocalPort -ne $FlowfolioSettings.Port) {
+            return $null
+        }
         $jsonLines = & $TailscalePath funnel status --json 2>$null
         if ($LASTEXITCODE -ne 0 -or -not $jsonLines) {
             return $null
         }
 
         $status = ($jsonLines -join [Environment]::NewLine) | ConvertFrom-Json
-        $entry = $status.Web.PSObject.Properties | Select-Object -First 1
+        $entry = Get-FlowfolioFunnelEndpoint -Status $status -Port $FlowfolioSettings.FunnelPort
         if (-not $entry) {
             return $null
         }
 
-        $funnelHost = $entry.Name -replace ":443$", ""
-        return "https://$funnelHost/health"
+        $publicUrl = Get-FlowfolioFunnelPublicUrl -Status $status -Port $FlowfolioSettings.FunnelPort
+        return "$publicUrl/health"
     } catch {
         return $null
     }

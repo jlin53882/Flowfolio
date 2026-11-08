@@ -3,6 +3,11 @@ param()
 
 $ErrorActionPreference = "Stop"
 
+$Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
+Set-Location $Root
+. (Join-Path $PSScriptRoot "flowfolio-env.ps1")
+$FlowfolioSettings = Get-FlowfolioSettings -Root $Root
+
 $MonitorScript = Join-Path $PSScriptRoot "monitor-flowfolio-health.ps1"
 $TaskName = "Flowfolio-健康監控"
 $Quote = [char]34
@@ -22,4 +27,4 @@ Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Pr
 Write-Host "工作排程器註冊完成：$TaskName" -ForegroundColor Green
 Write-Host "現在先執行一次監控驗證。" -ForegroundColor Cyan
 Start-ScheduledTask -TaskName $TaskName
-Write-Host "設定完成；之後每 10 分鐘自動檢查本機 8000 與公開 Funnel。" -ForegroundColor Green
+Write-Host "設定完成；之後每 10 分鐘自動檢查本機 $($FlowfolioSettings.LocalHost):$($FlowfolioSettings.Port) 與公開 Funnel。" -ForegroundColor Green

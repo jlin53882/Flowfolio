@@ -36,6 +36,8 @@ Set-Location ..
 
 ## 手動 smoke test
 
+以下 URL 使用未修改 `.env` 的預設值；若設定了其他 host 或 port，請替換成實際端點。
+
 1. 開啟 `http://127.0.0.1:8000`，確認總覽能載入。
 2. 新增工作，檢查收入與工作時數分別出現在 Dashboard。
 3. 新增待辦、勾選完成，檢查指定日期與完成率。
@@ -43,7 +45,7 @@ Set-Location ..
 5. 開啟「目標紀錄與回報」頁面，建立不同類型目標，手動更新狀態，完成後檢查移至已達成區塊。
 6. 設定頁下載 JSON、建立備份，確認外部移轉來源沒有變化。
 7. 在 360px、390px、768px、1024px、1440px 寬度檢查側欄／底部導覽與表格可讀性。
-8. 需要手機公開連線時，執行 `scripts/windows/啟動Flowfolio公開網站.bat`；腳本會自動啟動本機服務並等待健康端點，再用手機瀏覽器驗證輸出的 HTTPS 網址，結束後執行 `tailscale funnel reset`。
+8. 需要手機公開連線時，執行 `scripts/windows/啟動Flowfolio公開網站.bat`；腳本會自動啟動本機服務並等待健康端點，再用手機瀏覽器驗證輸出的 HTTPS 網址，結束後執行 `scripts/windows/stop-public-funnel.ps1`，只移除 Flowfolio 的 Funnel。
 
 ## 尚未宣稱的驗證
 

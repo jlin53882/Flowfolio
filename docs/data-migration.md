@@ -41,7 +41,7 @@ uv run python backend/scripts/legacy_import.py --dry-run `
 
 ## 正式匯入
 
-確認報告後才使用 `--apply`。新的 SQLite 與圖片位於 `FLOWFOLIO_DATA_DIR`；失敗列會保留診斷，舊資料不會刪除。
+確認報告後才使用 `--apply`。新的 SQLite 與圖片位於 `.env` 的 `FLOWFOLIO_DATA_DIR`；失敗列會保留診斷，舊資料不會刪除。
 
 ```powershell
 uv run python backend/scripts/legacy_import.py --apply `

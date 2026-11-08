@@ -2,6 +2,11 @@
     [switch]$Serial
 )
 
+$Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
+Set-Location $Root
+. (Join-Path $PSScriptRoot "flowfolio-env.ps1")
+$FlowfolioSettings = Get-FlowfolioSettings -Root $Root
+
 $pytestArguments = @("-n", "auto")
 if ($Serial) {
     $pytestArguments = @("-n", "0")

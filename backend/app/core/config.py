@@ -1,13 +1,17 @@
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     """執行期設定；可將私人資料放在 Git 工作樹之外。"""
 
-    environment: str = "development"
+    environment: str = Field(
+        default="development",
+        validation_alias=AliasChoices("FLOWFOLIO_ENV", "FLOWFOLIO_ENVIRONMENT"),
+    )
     data_dir: Path = Path("data")
     host: str = "127.0.0.1"
     port: int = 8000

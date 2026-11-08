@@ -10,7 +10,17 @@ Flowfolio 是單人、私人本機的工作與目標管理網站。它把接案�
 - 前端：Vite、原生 HTML/CSS、JavaScript ES Modules；正式服務由 FastAPI 提供編譯後靜態檔案。
 - 匯出：ReportLab PDF、UTF-8 BOM CSV，瀏覽器下載，不使用 `os.startfile()`。
 - 資料：金額以 TWD 整數儲存，工作時數以分鐘、目標進度以 Decimal 與自訂單位儲存；前端不作權威計價。
-- 網路：正式服務只監聽 `127.0.0.1`。私人存取使用 Tailscale Serve；若使用者明確需要手機不安裝 Tailscale 的公開網址，可執行 Tailscale Funnel 啟動腳本。
+- 網路：正式服務預設只監聽 `127.0.0.1:8000`；host、port、Funnel HTTPS port 與資料目錄由 `.env` 控制。私人存取使用 Tailscale Serve；若使用者明確需要手機不安裝 Tailscale 的公開網址，可執行 Tailscale Funnel 啟動腳本。不要把 `FLOWFOLIO_HOST` 改成公開網卡，除非已另外完成存取控制。
+
+## 環境設定
+
+`.env` 不提交到 Git；第一次建立工作樹時，可以從範例建立本機設定：
+
+```powershell
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+```
+
+目前支援的設定是 `FLOWFOLIO_ENV`、`FLOWFOLIO_DATA_DIR`、`FLOWFOLIO_HOST`、`FLOWFOLIO_PORT`、`FLOWFOLIO_FUNNEL_PORT`、`FLOWFOLIO_WEBHOOK_URL` 與選用的 `FLOWFOLIO_PDF_FONT`。Funnel port 預設為 `10000`，避免覆蓋同一台電腦上既有的 `443`／`8443` 服務；設定 `FLOWFOLIO_WEBHOOK_URL` 後，公開 Funnel 成功啟動會推送 Flowfolio 網址。Windows 啟動、公開 Funnel、健康監控、部署驗證、備份與測試腳本會先載入 `.env`；前端編譯與工作排程解除腳本不需要應用程式設定。
 
 ## 第一次啟動
 
@@ -18,16 +28,16 @@ Flowfolio 是單人、私人本機的工作與目標管理網站。它把接案�
 
 ```powershell
 uv sync
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 Set-Location frontend
 npm install
 npm run build
 npm run lint:css
 Set-Location ..
-uv run alembic upgrade head
-uv run uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --workers 1
+.\scripts\windows\start-dev.ps1
 ```
 
-瀏覽器開啟 [http://127.0.0.1:8000](http://127.0.0.1:8000)。
+未修改 `.env` 時，瀏覽器開啟 [http://127.0.0.1:8000](http://127.0.0.1:8000)；若修改 host 或 port，請使用 `.env` 中的端點。
 
 也可以直接執行：
 
@@ -37,16 +47,16 @@ uv run uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --wor
 
 開發模式會先建置前端，再以 loopback 啟動 FastAPI。正式啟動請使用 `scripts/windows/build-web.ps1` 及 `scripts/windows/start-prod.ps1`。
 
-若要比照 `hvac-inventory` 讓手機不安裝 Tailscale 也能從外網開啟，直接執行以下啟動腳本即可；腳本會自動啟動本機 `127.0.0.1:8000` 與公開 Funnel：
+若要比照 `hvac-inventory` 讓手機不安裝 Tailscale 也能從外網開啟，直接執行以下啟動腳本即可；腳本會依 `.env` 啟動本機服務與獨立的公開 Funnel HTTPS port，預設本機服務為 `127.0.0.1:8000`、公開 port 為 `10000`：
 
 ```powershell
 .\scripts\windows\啟動Flowfolio公開網站.bat
 ```
 
-Funnel 會產生公開的 HTTPS 網址；手機直接用瀏覽器開啟腳本輸出的 `https://...ts.net` 即可。公開網址的停止方式是：
+Funnel 會產生公開的 HTTPS 網址；手機直接用瀏覽器開啟腳本輸出的 `https://...ts.net:10000` 即可。腳本會檢查該 port 是否已被其他服務使用，避免覆蓋既有設定。公開網址的停止方式是：
 
 ```powershell
-tailscale funnel reset
+.\scripts\windows\stop-public-funnel.ps1
 ```
 
 目前 Flowfolio 沒有登入驗證，公開 Funnel 只應在你確認資料可被公開存取時使用；網址不是登入權限。詳細流程與風險見 `docs/deployment-windows-tailscale.md` 與 `docs/security.md`。
@@ -77,7 +87,7 @@ uv run python backend/scripts/legacy_import.py `
   --report 'reports\legacy-import-dry-run.json'
 ```
 
-確認報告後，才執行正式匯入。資料會寫入本專案的 `data`，外部來源保持不變：
+確認報告後，才執行正式匯入。資料會寫入 `.env` 的 `FLOWFOLIO_DATA_DIR`（預設為 `data`），外部來源保持不變：
 
 ```powershell
 uv run python backend/scripts/legacy_import.py `
