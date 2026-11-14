@@ -702,10 +702,18 @@ def dashboard(db: Session, month: str, selected_date: date) -> dict[str, Any]:
     todos = db.scalars(
         select(Todo).where(Todo.date == selected_date).order_by(Todo.time.asc())
     ).all()
+    # 指定日期的工作：精確日期的紀錄，加上同月份的「整月」(record_day=0) 紀錄。
+    # 整月紀錄的 date 欄位只是相容排序用的月初日期，不能當成實際發生日。
     day_works = db.scalars(
         select(WorkRecord)
-        .where(WorkRecord.date == selected_date)
-        .order_by(WorkRecord.created_at.desc())
+        .where(
+            or_(
+                (WorkRecord.date == selected_date) & (WorkRecord.record_day != 0),
+                (WorkRecord.record_day == 0)
+                & (WorkRecord.record_month == selected_date.strftime("%Y-%m")),
+            )
+        )
+        .order_by(WorkRecord.record_day.desc(), WorkRecord.created_at.desc())
     ).all()
     day_practice = db.scalars(
         select(PracticeRecord)
@@ -735,6 +743,8 @@ def dashboard(db: Session, month: str, selected_date: date) -> dict[str, Any]:
                 "kind": "work",
                 "title": item.name,
                 "date": item.date.isoformat(),
+                "month": item.record_month,
+                "day": item.record_day,
                 "created_at": item.created_at.isoformat(),
             }
             for item in recent_work

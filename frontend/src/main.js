@@ -4,14 +4,16 @@ import "./styles/main.css";
 
 const app = document.querySelector("#app");
 const navItems = [
-  ["dashboard", "總覽", "⌂"],
-  ["works", "工作紀錄", "▣"],
-  ["portfolio", "作品集", "▧"],
-  ["practice", "目標", "◎"],
-  ["todos", "待辦", "✓"],
-  ["analytics", "分析", "◒"],
-  ["settings", "設定", "⚙"],
+  ["dashboard", "總覽", "⌂", "main"],
+  ["works", "工作紀錄", "▣", "main"],
+  ["portfolio", "作品集", "▧", "main"],
+  ["practice", "目標", "◎", "main"],
+  ["todos", "待辦", "✓", "main"],
+  ["analytics", "分析", "◒", "manage"],
+  ["settings", "設定", "⚙", "manage"],
 ];
+const navGroups = [["main", "主要功能"], ["manage", "管理"]];
+const drawerQuery = window.matchMedia("(max-width: 1023px)");
 
 const state = {
   route: location.hash.replace(/^#\/?/, "") || "dashboard",
@@ -20,6 +22,7 @@ const state = {
   workEditing: null,
   goalEditing: null,
   portfolioEditing: null,
+  workFilter: { from: "", to: "", search: "" },
 };
 
 function el(tag, props = {}, children = []) {
@@ -77,7 +80,22 @@ function getValue(container, selector) {
 
 function workDateText(item) {
   if (Number(item.day) === 0 && item.month) return `${item.month.replace("-", "/")}/00`;
-  return dateText(item.date);
+  // 單日紀錄也用 YYYY/MM/DD，和整月的 YYYY/MM/00 對齊，清單才好掃讀。
+  return item.date ? item.date.replaceAll("-", "/") : "未設定";
+}
+
+function monthText(month) {
+  const [year, value] = String(month || "").split("-");
+  return year && value ? `${year}年${Number(value)}月` : "未設定";
+}
+
+function isWholeMonth(item) {
+  return Number(item.day) === 0 && Boolean(item.month);
+}
+
+function lastDayOfMonth(month) {
+  const [year, value] = month.split("-").map(Number);
+  return `${month}-${String(new Date(year, value, 0).getDate()).padStart(2, "0")}`;
 }
 
 function formatError(error) {
@@ -127,50 +145,82 @@ function card(title, subtitle = "") {
   return node;
 }
 
+// 手機／平板抽屜關閉時把側欄設為 inert，避免 Tab 鍵跑進看不到的選單；桌機版常駐可操作。
+function syncSidebarInert(shell) {
+  const sidebar = shell.querySelector(".sidebar");
+  sidebar.inert = drawerQuery.matches && !shell.classList.contains("nav-open");
+}
+
+function closeDrawer(shell, toggle) {
+  shell.classList.remove("nav-open");
+  syncSidebarInert(shell);
+  document.body.classList.remove("nav-locked");
+  toggle.setAttribute("aria-expanded", "false");
+  toggle.setAttribute("aria-label", "開啟導覽選單");
+}
+
 function renderShell() {
   const active = navItems.some(([key]) => key === state.route) ? state.route : "dashboard";
   if (active !== state.route) history.replaceState(null, "", "#/dashboard");
   state.route = active;
+  const [, activeLabel, activeIcon] = navItems.find(([key]) => key === active);
   const dashboardHeaderBrandMarkup = active === "dashboard"
     ? '<div class="main-brand-photo"><img src="/assets/flowfolio-wordmark-cropped.jpg" alt="Flowfolio 右上角品牌字樣" /></div>'
     : "";
   app.innerHTML = `
     <div class="app-shell">
-      <aside class="sidebar">
-        <div class="brand"><div><strong>Flowfolio</strong><small>工作與目標節奏</small></div></div>
+      <aside class="sidebar" id="app-sidebar" aria-label="側邊導覽">
+        <div class="brand"><span class="brand-mark" aria-hidden="true">F</span><div><strong>Flowfolio</strong><small>工作與目標節奏</small></div></div>
         <nav class="sidebar-nav" aria-label="主要導覽"></nav>
-        <div class="sidebar-footer"><span class="status-dot"></span><span>私人本機模式</span></div>
+        <div class="sidebar-footer"><span class="sidebar-avatar" aria-hidden="true">私</span><div><strong>私人本機模式</strong><small><span class="status-dot"></span>本機服務</small></div></div>
       </aside>
-      <main class="main-content">${dashboardHeaderBrandMarkup}<div id="page"></div></main>
-      <button class="mobile-menu-toggle" type="button" aria-label="開啟手機導覽" aria-expanded="false"><span></span><span></span><span></span></button>
-      <nav class="mobile-nav" aria-label="手機導覽"></nav>
+      <div class="sidebar-backdrop" aria-hidden="true"></div>
+      <div class="main-column">
+        <header class="topbar">
+          <button class="menu-toggle" type="button" aria-label="開啟導覽選單" aria-expanded="false" aria-controls="app-sidebar"><span></span><span></span><span></span></button>
+          <div class="topbar-title"><span aria-hidden="true">${activeIcon}</span><strong>${activeLabel}</strong></div>
+        </header>
+        <main class="main-content${active === "dashboard" ? " has-brand" : ""}">${dashboardHeaderBrandMarkup}<div id="page"></div></main>
+      </div>
     </div>
     <div id="toast-area" aria-live="polite"></div>
   `;
   const sidebarNav = app.querySelector(".sidebar-nav");
-  const mobileNav = app.querySelector(".mobile-nav");
-  const mobileMenuToggle = app.querySelector(".mobile-menu-toggle");
+  const menuToggle = app.querySelector(".menu-toggle");
   const appShell = app.querySelector(".app-shell");
-  mobileMenuToggle.addEventListener("click", () => {
-    const isOpen = appShell.classList.toggle("mobile-menu-open");
-    mobileMenuToggle.setAttribute("aria-expanded", String(isOpen));
-    mobileMenuToggle.setAttribute("aria-label", isOpen ? "關閉手機導覽" : "開啟手機導覽");
+  document.body.classList.remove("nav-locked");
+  syncSidebarInert(appShell);
+  menuToggle.addEventListener("click", () => {
+    const isOpen = appShell.classList.toggle("nav-open");
+    document.body.classList.toggle("nav-locked", isOpen);
+    syncSidebarInert(appShell);
+    menuToggle.setAttribute("aria-expanded", String(isOpen));
+    menuToggle.setAttribute("aria-label", isOpen ? "關閉導覽選單" : "開啟導覽選單");
+    // 開啟後把焦點移進選單，鍵盤與螢幕閱讀器使用者可直接操作。
+    if (isOpen) sidebarNav.querySelector("a.active, a")?.focus();
   });
-  navItems.forEach(([key, label, icon]) => {
-    const link = el("a", { className: `nav-link ${active === key ? "active" : ""}`, href: `#/${key}`, "aria-label": label, title: label });
-    link.append(el("span", { className: "nav-icon", text: icon }), el("span", { text: label }));
-    sidebarNav.append(link);
-    const mobileLink = el("a", { className: active === key ? "active" : "", href: `#/${key}`, "aria-label": label });
-    mobileLink.addEventListener("click", () => {
-      appShell.classList.remove("mobile-menu-open");
-      mobileMenuToggle.setAttribute("aria-expanded", "false");
-      mobileMenuToggle.setAttribute("aria-label", "開啟手機導覽");
+  app.querySelector(".sidebar-backdrop").addEventListener("click", () => closeDrawer(appShell, menuToggle));
+  appShell.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && appShell.classList.contains("nav-open")) { closeDrawer(appShell, menuToggle); menuToggle.focus(); }
+  });
+  navGroups.forEach(([group, groupLabel]) => {
+    sidebarNav.append(el("div", { className: "nav-section-label", text: groupLabel }));
+    navItems.filter((item) => item[3] === group).forEach(([key, label, icon]) => {
+      const link = el("a", { className: `nav-link ${active === key ? "active" : ""}`, href: `#/${key}`, "aria-label": label, title: label });
+      if (active === key) link.setAttribute("aria-current", "page");
+      link.append(el("span", { className: "nav-icon", "aria-hidden": "true", text: icon }), el("span", { className: "nav-label", text: label }));
+      link.addEventListener("click", () => closeDrawer(appShell, menuToggle));
+      sidebarNav.append(link);
     });
-    mobileLink.append(el("span", { text: icon }), el("small", { text: label }));
-    mobileNav.append(mobileLink);
   });
   renderPage(app.querySelector("#page"));
 }
+
+drawerQuery.addEventListener("change", () => {
+  const shell = app.querySelector(".app-shell");
+  const toggle = app.querySelector(".menu-toggle");
+  if (shell && toggle) closeDrawer(shell, toggle);
+});
 
 function renderPage(outlet) {
   const pages = { dashboard: renderDashboard, works: renderWorks, portfolio: renderPortfolio, practice: renderGoals, todos: renderTodos, analytics: renderAnalytics, settings: renderSettings };
@@ -188,7 +238,8 @@ async function renderDashboard(outlet) {
   frame.querySelector("h1").classList.add("dashboard-title");
   const controls = el("div", { className: "toolbar dashboard-toolbar" });
   controls.append(field("統計月份", "month", "month", state.month), field("查看日期", "date", "date", state.date));
-  controls.append(button("重新整理", "button secondary", () => load()));
+  const todayButton = button("今天", "button ghost", () => { dateInput.value = today(); monthInput.value = monthOf(); load(); });
+  controls.append(todayButton, button("重新整理", "button secondary", () => load()));
   frame.querySelector(".page-header").append(controls);
   const stats = el("div", { className: "stats-grid" });
   const body = el("div", { className: "dashboard-grid" });
@@ -222,7 +273,7 @@ async function renderDashboard(outlet) {
       }
       data.daily.forEach((item) => {
         const title = item.kind === "todo" ? item.title : item.kind === "work" ? item.name : item.kind === "goal" ? item.title : item.piece;
-        const detail = item.kind === "todo" ? `${item.time || "未排時間"}${item.location ? ` · ${item.location}` : ""}` : item.kind === "work" ? `${item.type} · ${money(item.income)}` : item.kind === "goal" ? (item.status === "completed" ? "已達成" : "進行中") : duration(item.duration_seconds);
+        const detail = item.kind === "todo" ? `${item.time || "未排時間"}${item.location ? ` · ${item.location}` : ""}` : item.kind === "work" ? `${isWholeMonth(item) ? `整月紀錄（${monthText(item.month)}）` : "當日"} · ${item.type} · ${money(item.income)}` : item.kind === "goal" ? (item.status === "completed" ? "已達成" : "進行中") : duration(item.duration_seconds);
         const row = el("div", { className: `list-row ${item.completed || item.status === "completed" ? "is-done" : ""}` });
         row.append(el("span", { className: `kind-dot ${item.kind}`, text: item.kind === "todo" ? "待" : item.kind === "work" ? "工" : item.kind === "goal" ? "目" : "練" }), el("div", { className: "row-main" }, [el("strong", { text: title }), el("small", { text: detail })]));
         if (item.kind === "todo") row.append(button(item.completed ? "已完成" : "完成", "button ghost small", async () => { await api(`/api/v1/todos/${item.id}`, { method: "PATCH", body: { completed: !item.completed } }); load(); }));
@@ -233,7 +284,7 @@ async function renderDashboard(outlet) {
       if (!data.recent.length) recentList.append(emptyState("還沒有活動紀錄"));
       data.recent.forEach((item) => {
         const row = el("div", { className: "list-row" });
-        row.append(el("span", { className: `kind-dot ${item.kind}`, text: item.kind === "work" ? "工" : "練" }), el("div", { className: "row-main" }, [el("strong", { text: item.title }), el("small", { text: `${item.kind === "work" ? "工作" : "練習"} · ${dateText(item.date)}` })]));
+        row.append(el("span", { className: `kind-dot ${item.kind}`, text: item.kind === "work" ? "工" : "練" }), el("div", { className: "row-main" }, [el("strong", { text: item.title }), el("small", { text: `${item.kind === "work" ? "工作" : "練習"} · ${isWholeMonth(item) ? `${monthText(item.month)}（整月）` : dateText(item.date)}` })]));
         recentList.append(row);
       });
     } catch (error) {
@@ -242,8 +293,22 @@ async function renderDashboard(outlet) {
       recentList.replaceChildren();
     }
   }
-  monthInput.addEventListener("change", load);
-  dateInput.addEventListener("change", load);
+  // 月份與日期互相同步：換月份時把查看日期移到該月（同日或月底），換日期時統計月份跟著走。
+  monthInput.addEventListener("change", () => {
+    const month = monthInput.value;
+    if (!month) return;
+    if (dateInput.value.slice(0, 7) !== month) {
+      const day = Number((dateInput.value || today()).slice(8, 10));
+      const last = lastDayOfMonth(month);
+      dateInput.value = `${month}-${String(Math.min(day, Number(last.slice(8, 10)))).padStart(2, "0")}`;
+    }
+    load();
+  });
+  dateInput.addEventListener("change", () => {
+    if (!dateInput.value) return;
+    monthInput.value = dateInput.value.slice(0, 7);
+    load();
+  });
   load();
 }
 
@@ -256,7 +321,7 @@ function workForm(editing = null) {
   const typeOptions = el("datalist", { id: "work-type-options" });
   ["工作", "志工", "演出", "比賽", "學習", "會議", "其他"].forEach((value) => typeOptions.append(el("option", { value })));
   typeField.append(typeOptions);
-  form.append(field("年月", "month", "month", editingMonth, { required: true }), field("日（選填）", "number", "day", editingDay, { min: 1, max: 31, step: 1, placeholder: "留空則記為該月 0 日" }), field("紀錄名稱", "text", "name", editing?.name || "", { required: true, placeholder: "例如：品牌視覺整理、社區服務、校際演出" }), typeField, field("收入（TWD，選填）", "number", "income", editing?.income || "0", { min: 0, step: 1 }), field("投入時數（選填）", "number", "hours", editing?.hours || "0", { min: 0, step: 0.25 }), field("備註", "textarea", "notes", editing?.notes || "", { rows: 3 }));
+  form.append(field("年月", "month", "month", editingMonth, { required: true }), field("日（選填）", "number", "day", editingDay, { min: 0, max: 31, step: 1, placeholder: "留空或輸入 0 表示整月" }), field("紀錄名稱", "text", "name", editing?.name || "", { required: true, placeholder: "例如：品牌視覺整理、社區服務、校際演出" }), typeField, field("收入（TWD，選填）", "number", "income", editing?.income || "0", { min: 0, step: 1 }), field("投入時數（選填）", "number", "hours", editing?.hours || "0", { min: 0, step: 0.25 }), field("備註", "textarea", "notes", editing?.notes || "", { rows: 3 }));
   const actions = el("div", { className: "form-actions" });
   actions.append(button(editing ? "儲存修改" : "新增工作", "button primary", undefined, "submit"));
   if (editing) actions.append(button("取消編輯", "button secondary", () => { state.workEditing = null; renderShell(); }));
@@ -264,19 +329,51 @@ function workForm(editing = null) {
   return form;
 }
 
+function workFilterQuery() {
+  const { from, to, search } = state.workFilter;
+  const params = new URLSearchParams();
+  if (search) params.set("search", search);
+  // 以「年月」篩選：整月紀錄 (day=0) 的 date 是月初，所以用月初～月底就能同時涵蓋整月與單日紀錄。
+  if (from) params.set("date_from", `${from}-01`);
+  if (to) params.set("date_to", lastDayOfMonth(to));
+  return params.toString();
+}
+
 async function renderWorks(outlet) {
   const frame = pageFrame("Works", "工作紀錄", "用穩定 ID 管理每一筆工作，收入與工作時數分開統計。");
-  const layout = el("div", { className: "two-column" });
+  const layout = el("div", { className: "two-column works-layout" });
   const formCard = card(state.workEditing ? "編輯工作" : "新增工作");
   formCard.append(workForm(state.workEditing));
-  const listCard = card("工作清單", "可搜尋名稱、類型與備註。");
-  const search = field("搜尋", "search", "search", "", { placeholder: "輸入關鍵字" });
-  listCard.querySelector(".c-card-header").append(search);
-  const list = el("div", { className: "table-wrap" });
-  listCard.append(list);
+  const listCard = card("工作清單", "可依年月區間篩選，並搜尋名稱、類型與備註。");
+  const filters = el("div", { className: "work-filters", role: "search", "aria-label": "工作清單篩選" });
+  const fromField = field("從（年月）", "month", "filter_from", state.workFilter.from);
+  const toField = field("到（年月）", "month", "filter_to", state.workFilter.to);
+  const search = field("搜尋", "search", "search", state.workFilter.search, { placeholder: "輸入關鍵字" });
+  search.classList.add("work-filter-search");
+  const presets = el("div", { className: "work-filter-presets" });
+  const summary = el("p", { className: "work-summary", "aria-live": "polite" });
+  filters.append(fromField, toField, search, presets);
+  const list = el("div", { className: "table-wrap works-table-wrap" });
+  listCard.append(filters, summary, list);
   layout.append(formCard, listCard);
   frame.append(layout);
   outlet.replaceChildren(frame);
+  const fromInput = fromField.querySelector("input");
+  const toInput = toField.querySelector("input");
+  const searchInput = search.querySelector("input");
+  const applyPreset = (from, to) => { fromInput.value = from; toInput.value = to; syncFilter(); load(); };
+  const year = today().slice(0, 4);
+  presets.append(
+    button("本月", "button ghost small", () => applyPreset(monthOf(), monthOf())),
+    button("今年", "button ghost small", () => applyPreset(`${year}-01`, `${year}-12`)),
+    button("去年", "button ghost small", () => applyPreset(`${Number(year) - 1}-01`, `${Number(year) - 1}-12`)),
+    button("全部", "button ghost small", () => { searchInput.value = ""; applyPreset("", ""); }),
+  );
+  function syncFilter() {
+    // 起訖顛倒時自動對調，避免查無資料。
+    if (fromInput.value && toInput.value && fromInput.value > toInput.value) [fromInput.value, toInput.value] = [toInput.value, fromInput.value];
+    state.workFilter = { from: fromInput.value, to: toInput.value, search: searchInput.value.trim() };
+  }
   const form = frame.querySelector("#work-form");
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -292,24 +389,41 @@ async function renderWorks(outlet) {
   });
   async function load() {
     try {
-      const items = await api(`/api/v1/works?search=${encodeURIComponent(getValue(frame, '[name="search"]'))}`);
+      const items = await api(`/api/v1/works?${workFilterQuery()}`);
+      const income = items.reduce((total, item) => total + Number(item.income || 0), 0);
+      const totalHours = items.reduce((total, item) => total + Number(item.hours || 0), 0);
+      const { from, to } = state.workFilter;
+      const range = from || to ? `${from ? monthText(from) : "最早"} ～ ${to ? monthText(to) : "最新"}` : "全部期間";
+      summary.textContent = `${range} · 共 ${items.length} 筆 · 收入 ${money(income)} · ${totalHours.toFixed(2)} 小時`;
       renderWorkTable(list, items);
     } catch (error) { list.replaceChildren(emptyState(formatError(error), button("再試一次", "button secondary", load))); }
   }
-  search.querySelector("input").addEventListener("input", () => { window.clearTimeout(search._timer); search._timer = window.setTimeout(load, 250); });
+  [fromInput, toInput].forEach((input) => input.addEventListener("change", () => { syncFilter(); load(); }));
+  searchInput.addEventListener("input", () => { window.clearTimeout(search._timer); search._timer = window.setTimeout(() => { syncFilter(); load(); }, 250); });
   await load();
 }
 
 function renderWorkTable(container, items) {
-  if (!items.length) { container.replaceChildren(emptyState("還沒有工作紀錄")); return; }
-  const table = el("table", {});
-  const head = el("thead", {}); head.append(el("tr", {}, ["日期", "工作", "類型", "收入", "時數", "操作"].map((text) => el("th", { text })))); table.append(head);
+  const filtered = state.workFilter.from || state.workFilter.to || state.workFilter.search;
+  if (!items.length) { container.replaceChildren(emptyState(filtered ? "這個篩選條件下沒有工作紀錄" : "還沒有工作紀錄")); return; }
+  const table = el("table", { className: "work-table" });
+  const head = el("thead", {});
+  head.append(el("tr", {}, ["日期", "工作", "類型", "收入", "時數", "操作"].map((text, index) => el("th", { text, scope: "col", className: ["cell-date", "cell-name", "cell-type", "cell-income numeric", "cell-hours numeric", "cell-actions"][index] }))));
+  table.append(head);
   const body = el("tbody", {});
   items.forEach((item) => {
     const row = el("tr", {});
-    row.append(el("td", { text: workDateText(item) }), el("td", {}, [el("strong", { text: item.name }), el("small", { className: "table-note", text: item.notes || "" })]), el("td", { text: item.type }), el("td", { className: "numeric", text: money(item.income) }), el("td", { className: "numeric", text: `${Number(item.hours || 0).toFixed(2)} h` }));
-    const actions = el("td", { className: "actions" });
-    actions.append(button("編輯", "button ghost small", () => { state.workEditing = item; renderShell(); }), button("刪除", "button danger small", async () => { if (!confirm("確定要刪除這筆工作紀錄嗎？")) return; try { await api(`/api/v1/works/${item.id}`, { method: "DELETE" }); toast("工作紀錄已刪除"); renderShell(); } catch (error) { toast(formatError(error), "error"); } }));
+    const nameCell = el("td", { className: "cell-name" }, [el("strong", { text: item.name })]);
+    if (item.notes) nameCell.append(el("small", { className: "table-note", text: item.notes, title: item.notes }));
+    row.append(
+      el("td", { className: "cell-date", "data-label": "日期", text: workDateText(item) }),
+      nameCell,
+      el("td", { className: "cell-type" }, [el("span", { className: "type-chip", text: item.type })]),
+      el("td", { className: "cell-income numeric", "data-label": "收入", text: money(item.income) }),
+      el("td", { className: "cell-hours numeric", "data-label": "時數", text: `${Number(item.hours || 0).toFixed(2)} h` }),
+    );
+    const actions = el("td", { className: "actions cell-actions" });
+    actions.append(button("編輯", "button ghost small", () => { state.workEditing = item; renderShell(); window.scrollTo({ top: 0, behavior: "smooth" }); }), button("刪除", "button danger small", async () => { if (!confirm("確定要刪除這筆工作紀錄嗎？")) return; try { await api(`/api/v1/works/${item.id}`, { method: "DELETE" }); toast("工作紀錄已刪除"); renderShell(); } catch (error) { toast(formatError(error), "error"); } }));
     row.append(actions); body.append(row);
   });
   table.append(body); container.replaceChildren(table);

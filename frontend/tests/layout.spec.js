@@ -51,14 +51,39 @@ for (const viewport of viewports) {
   }
 }
 
-test("手機版導覽與鍵盤焦點可用", async ({ page }) => {
+test("手機版抽屜導覽可開啟、聚焦並以背景或 Esc 關閉", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await mockApi(page);
   await page.goto("/#/dashboard");
-  await page.getByRole("button", { name: "開啟手機導覽" }).click();
-  await expect(page.locator(".mobile-nav")).toBeVisible();
-  await page.keyboard.press("Tab");
-  await expect(page.locator(":focus")).toBeVisible();
+  const sidebar = page.locator(".sidebar");
+  await expect(sidebar).toHaveAttribute("inert", "");
+  await expect(page.locator(".topbar-title")).toContainText("總覽");
+  await page.getByRole("button", { name: "開啟導覽選單" }).click();
+  await expect(sidebar).not.toHaveAttribute("inert", "");
+  await expect(sidebar).toBeInViewport();
+  await expect(page.locator(".nav-section-label")).toHaveText(["主要功能", "管理"]);
+  await expect(page.locator(":focus")).toHaveAttribute("href", "#/dashboard");
+  await page.keyboard.press("Escape");
+  await expect(sidebar).toHaveAttribute("inert", "");
+  await page.getByRole("button", { name: "開啟導覽選單" }).click();
+  await page.locator(".sidebar-backdrop").click({ position: { x: 370, y: 400 } });
+  await expect(sidebar).toHaveAttribute("inert", "");
+  await page.getByRole("button", { name: "開啟導覽選單" }).click();
+  await page.locator(".sidebar-nav").getByRole("link", { name: "工作紀錄" }).click();
+  await expect(page).toHaveURL(/#\/works$/);
+  await expect(sidebar).toHaveAttribute("inert", "");
+  await expect(page.locator(".topbar-title")).toContainText("工作紀錄");
+});
+
+test("桌機版側邊欄常駐且不顯示漢堡選單", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await mockApi(page);
+  await page.goto("/#/works");
+  await expect(page.locator(".sidebar")).toBeInViewport();
+  await expect(page.locator(".sidebar")).not.toHaveAttribute("inert", "");
+  await expect(page.locator(".menu-toggle")).toBeHidden();
+  await expect(page.locator(".sidebar-nav a.active")).toHaveAttribute("aria-current", "page");
+  await expect(page.locator(".sidebar-nav a.active")).toHaveText(/工作紀錄/);
 });
 
 test("桌面與手機導覽都提供中文可理解名稱", async ({ page }) => {
@@ -68,7 +93,6 @@ test("桌面與手機導覽都提供中文可理解名稱", async ({ page }) => 
   await expect(page.locator(".brand strong")).toHaveText("Flowfolio");
   await expect(page.locator(".brand img")).toHaveCount(0);
   await expect(page.locator(".sidebar-nav a[aria-label]")).toHaveCount(7);
-  await expect(page.locator(".mobile-nav a[aria-label]")).toHaveCount(7);
 });
 
 test("右上角 Logo 僅在總覽頁顯示", async ({ page }) => {

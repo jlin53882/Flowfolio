@@ -31,6 +31,8 @@ async function mockApi(page, options = {}) {
         content: "UI 操作驗收",
         media: [{ id: "test-media", original_name: "測試作品.svg", url: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='100'%3E%3Crect width='160' height='100' fill='%230f766e'/%3E%3C/svg%3E" }],
       }];
+    } else if (url.pathname.endsWith("/works")) {
+      payload = options.works || [];
     }
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(payload) });
   });
@@ -73,6 +75,22 @@ test("工作紀錄可以選擇志工、演出、比賽或輸入自訂性質", as
   await expect(workType).toHaveValue("顧問");
 });
 
+test("編輯整月工作紀錄可以保留 0 日並正常送出", async ({ page }) => {
+  await mockApi(page, { works: [{ id: "work-month", date: "2023-03-01", month: "2023-03", day: 0, name: "整月志工服務", type: "志工", income: "500", hours: "5", notes: "" }] });
+  const requests = [];
+  page.on("request", (request) => {
+    if (request.method() === "PATCH" && request.url().includes("/api/v1/works/work-month")) requests.push(request);
+  });
+  await page.goto("/#/works");
+  await page.getByRole("button", { name: "編輯", exact: true }).click();
+  const day = page.getByLabel("日（選填）", { exact: true });
+  await expect(day).toHaveValue("0");
+  await expect(day).toHaveAttribute("min", "0");
+  await page.getByRole("button", { name: "儲存修改", exact: true }).click();
+  await expect.poll(() => requests.length).toBe(1);
+  expect(requests[0].postDataJSON().day).toBe(0);
+});
+
 test("已移除的報價舊路由會回到總覽", async ({ page }) => {
   await mockApi(page);
   await page.goto("/#/quotes");
@@ -112,4 +130,53 @@ test("目標頁面顯示進行中與已達成且不含計時器", async ({ page 
   await expect(page.getByRole("button", { name: "標記已達成", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "開始練習", exact: true })).toHaveCount(0);
   await expect(page.getByText("計時中", { exact: true })).toHaveCount(0);
+});
+
+test("工作清單可依年月區間篩選並顯示合計", async ({ page }) => {
+  const requests = [];
+  await mockApi(page, { works: [{ id: "w1", date: "2025-07-01", month: "2025-07", day: 0, name: "音樂初心後台工作人員_台北親子劇場", type: "工作", income: "1200", hours: "3.5", notes: "" }] });
+  page.on("request", (request) => { if (request.url().includes("/api/v1/works")) requests.push(new URL(request.url())); });
+  await page.goto("/#/works");
+  await page.getByLabel("從（年月）").fill("2025-05");
+  await page.getByLabel("從（年月）").dispatchEvent("change");
+  await page.getByLabel("到（年月）").fill("2025-07");
+  await page.getByLabel("到（年月）").dispatchEvent("change");
+  await expect.poll(() => requests.at(-1)?.searchParams.get("date_to")).toBe("2025-07-31");
+  expect(requests.at(-1).searchParams.get("date_from")).toBe("2025-05-01");
+  await expect(page.locator(".work-summary")).toContainText("共 1 筆");
+  await expect(page.locator(".work-summary")).toContainText("NT$ 1,200");
+  await page.getByRole("button", { name: "全部", exact: true }).click();
+  await expect.poll(() => requests.at(-1)?.searchParams.has("date_from")).toBe(false);
+});
+
+test("手機版工作清單改為卡片且完整顯示類型與操作", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mockApi(page, { works: [{ id: "w1", date: "2025-05-01", month: "2025-05", day: 0, name: "享管弦事音樂會後台工作人員_國家音樂廳B1", type: "工作", income: "0", hours: "0", notes: "" }] });
+  await page.goto("/#/works");
+  const row = page.locator(".work-table tbody tr").first();
+  await expect(row).toHaveCSS("display", "grid");
+  await expect(row.locator(".type-chip")).toHaveText("工作");
+  const chipBox = await row.locator(".type-chip").boundingBox();
+  expect(chipBox.height).toBeLessThan(30);
+  const deleteBox = await row.getByRole("button", { name: "刪除" }).boundingBox();
+  expect(deleteBox.x + deleteBox.width).toBeLessThanOrEqual(390);
+});
+
+test("總覽切換月份會把查看日期移到該月，切換日期會同步統計月份", async ({ page }) => {
+  const requests = [];
+  await mockApi(page, { emptyDaily: true });
+  page.on("request", (request) => { if (request.url().includes("/api/v1/dashboard")) requests.push(new URL(request.url())); });
+  await page.goto("/#/dashboard");
+  const month = page.getByLabel("統計月份");
+  const day = page.getByLabel("查看日期");
+  await day.fill("2026-11-14");
+  await day.dispatchEvent("change");
+  await month.fill("2025-07");
+  await month.dispatchEvent("change");
+  await expect(day).toHaveValue("2025-07-14");
+  await expect.poll(() => requests.at(-1)?.searchParams.get("selected_date")).toBe("2025-07-14");
+  await day.fill("2025-05-31");
+  await day.dispatchEvent("change");
+  await expect(month).toHaveValue("2025-05");
+  await expect.poll(() => requests.at(-1)?.searchParams.get("month")).toBe("2025-05");
 });

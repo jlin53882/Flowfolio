@@ -161,3 +161,53 @@ def test_portfolio_upload_is_id_based_and_validated(client):
     media = client.get(media_url)
     assert media.status_code == 200
     assert media.headers["content-type"] == "image/png"
+
+
+def test_dashboard_shows_whole_month_work_on_any_day_of_that_month(client):
+    client.post(
+        "/api/v1/works",
+        json={
+            "month": "2025-07",
+            "day": 0,
+            "name": "整月後台工作",
+            "type": "工作",
+            "income": "3000",
+            "hours": "6",
+        },
+    )
+    client.post(
+        "/api/v1/works",
+        json={"month": "2025-07", "day": 1, "name": "七月一日單日工作", "type": "工作"},
+    )
+
+    mid_month = client.get("/api/v1/dashboard?month=2025-07&selected_date=2025-07-14").json()
+    names = [item["name"] for item in mid_month["daily"] if item["kind"] == "work"]
+    assert names == ["整月後台工作"]
+    assert mid_month["income"] == "3000"
+    assert mid_month["work_minutes"] == 360
+
+    first_day = client.get("/api/v1/dashboard?month=2025-07&selected_date=2025-07-01").json()
+    first_names = {item["name"] for item in first_day["daily"] if item["kind"] == "work"}
+    assert first_names == {"整月後台工作", "七月一日單日工作"}
+
+    other_month = client.get("/api/v1/dashboard?month=2025-08&selected_date=2025-08-14").json()
+    assert [item for item in other_month["daily"] if item["kind"] == "work"] == []
+    recent_whole_month = next(
+        item for item in other_month["recent"] if item["title"] == "整月後台工作"
+    )
+    assert recent_whole_month["day"] == 0
+    assert recent_whole_month["month"] == "2025-07"
+
+
+def test_works_can_be_filtered_by_month_range(client):
+    client.post(
+        "/api/v1/works", json={"month": "2025-05", "day": 0, "name": "五月整月", "type": "工作"}
+    )
+    client.post(
+        "/api/v1/works", json={"month": "2025-07", "day": 20, "name": "七月單日", "type": "工作"}
+    )
+    client.post(
+        "/api/v1/works", json={"month": "2025-09", "day": 3, "name": "九月單日", "type": "工作"}
+    )
+    items = client.get("/api/v1/works?date_from=2025-05-01&date_to=2025-07-31").json()
+    assert [item["name"] for item in items] == ["七月單日", "五月整月"]
