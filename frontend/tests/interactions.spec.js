@@ -53,6 +53,26 @@ test("操作成功後頁面重繪，提示訊息仍會顯示", async ({ page }) 
   await expect(page.locator(".toast", { hasText: "待辦已儲存" })).toBeVisible();
 });
 
+test("待辦完成與刪除失敗時顯示錯誤並保留項目", async ({ page }) => {
+  await mockApi(page);
+  const todo = { id: "err-todo", date: "2026-11-22", title: "失敗測試", time: null, location: "", completed: false };
+  await page.route("**/api/v1/todos", async (route) => {
+    if (route.request().method() !== "GET") return route.fallback();
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([todo]) });
+  });
+  await page.route("**/api/v1/todos/err-todo", async (route) => {
+    await route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ error: { message: "伺服器暫時無法處理" } }) });
+  });
+  page.on("dialog", (dialog) => dialog.accept());
+  await page.goto("/#/todos");
+  const check = page.getByRole("checkbox");
+  await check.check();
+  await expect(page.locator(".toast.error, .toast", { hasText: /伺服器暫時無法處理|失敗|錯誤/ }).first()).toBeVisible();
+  await expect(check).not.toBeChecked();
+  await page.getByRole("button", { name: "刪除", exact: true }).click();
+  await expect(page.getByText("失敗測試", { exact: true })).toBeVisible();
+});
+
 test("作品圖片預覽可以開啟與關閉", async ({ page }) => {
   await mockApi(page);
   await page.goto("/#/portfolio");
