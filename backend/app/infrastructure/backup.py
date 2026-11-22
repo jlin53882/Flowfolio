@@ -6,6 +6,7 @@ import shutil
 import sqlite3
 import tempfile
 import zipfile
+from contextlib import closing
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -32,9 +33,11 @@ def create_backup(settings: Settings) -> dict[str, object]:
     with tempfile.TemporaryDirectory(prefix="flowfolio-backup-") as temp_dir:
         root = Path(temp_dir)
         database_copy = root / "flowfolio.db"
+        # sqlite3 的 with 只負責 commit/rollback、不會關閉連線；
+        # Windows 會因此鎖住暫存檔，所以這裡明確 close。
         with (
-            sqlite3.connect(database_path) as source,
-            sqlite3.connect(database_copy) as destination,
+            closing(sqlite3.connect(database_path)) as source,
+            closing(sqlite3.connect(database_copy)) as destination,
         ):
             source.backup(destination)
         media_source = settings.media_dir

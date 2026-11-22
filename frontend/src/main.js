@@ -22,6 +22,7 @@ const state = {
   workEditing: null,
   goalEditing: null,
   portfolioEditing: null,
+  portfolioError: "",
   workFilter: { from: "", to: "", search: "" },
 };
 
@@ -104,7 +105,8 @@ function formatError(error) {
 }
 
 function toast(message, type = "success") {
-  const area = document.querySelector("#toast-area") || document.body.appendChild(el("div", { id: "toast-area" }));
+  // 提示區放在 #app 之外：renderShell() 會整頁重繪 #app，放在裡面的提示會在操作後立刻被清掉。
+  const area = document.querySelector("#toast-area") || document.body.appendChild(el("div", { id: "toast-area", "aria-live": "polite" }));
   const item = el("div", { className: `toast ${type}`, text: message });
   area.append(item);
   window.setTimeout(() => item.remove(), 3600);
@@ -183,7 +185,6 @@ function renderShell() {
         <main class="main-content${active === "dashboard" ? " has-brand" : ""}">${dashboardHeaderBrandMarkup}<div id="page"></div></main>
       </div>
     </div>
-    <div id="toast-area" aria-live="polite"></div>
   `;
   const sidebarNav = app.querySelector(".sidebar-nav");
   const menuToggle = app.querySelector(".menu-toggle");
@@ -529,24 +530,105 @@ async function renderGoals(outlet) {
   await load();
 }
 
+const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
+
+// 送出前先檢查圖片格式與大小（與後端限制一致），避免作品建立後才發現圖片被拒絕。
+function checkPhotos(files) {
+  for (const file of files) {
+    if (!PHOTO_TYPES.includes(file.type)) return `「${file.name}」不是 JPG、PNG 或 WebP 圖片（手機的 HEIC 格式需先轉成 JPG）。`;
+    if (file.size > MAX_PHOTO_BYTES) return `「${file.name}」有 ${(file.size / 1024 / 1024).toFixed(1)} MB，單張不可超過 8 MB。`;
+  }
+  return "";
+}
+
 async function renderPortfolio(outlet) {
   const frame = pageFrame("日常紀錄", "作品集", "作品只存於本機資料目錄；圖片透過 media ID 取用，不暴露磁碟路徑。");
   const layout = el("div", { className: "two-column portfolio-layout" }); const formCard = card(state.portfolioEditing ? "編輯作品資訊" : "新增作品"); const form = el("form", { className: "form-grid", id: "portfolio-form" }); const editing = state.portfolioEditing;
   form.append(field("日期", "date", "date", editing?.date || today(), { required: true }), field("作品名稱", "text", "project", editing?.project || "", { required: true }), field("分類", "text", "category", editing?.category || "未分類"), field("內容摘要", "textarea", "content", editing?.content || "", { rows: 5 }));
-  const fileField = field("圖片（可多選）", "file", "files", "", {}); fileField.querySelector("input").multiple = true; fileField.querySelector("input").accept = "image/jpeg,image/png,image/webp"; form.append(fileField); const actions = el("div", { className: "form-actions" }); actions.append(button(editing ? "儲存作品資訊" : "新增作品", "button primary", undefined, "submit")); if (editing) actions.append(button("取消編輯", "button secondary", () => { state.portfolioEditing = null; renderShell(); })); form.append(actions); formCard.append(form);
+  const fileField = field(editing ? `新增圖片（可多選，目前 ${editing.media?.length || 0} 張）` : "圖片（可多選）", "file", "files", "", {}); fileField.querySelector("input").multiple = true; fileField.querySelector("input").accept = "image/jpeg,image/png,image/webp"; form.append(fileField); const actions = el("div", { className: "form-actions" }); actions.append(button(editing ? "儲存作品資訊" : "新增作品", "button primary", undefined, "submit")); if (editing) actions.append(button("取消編輯", "button secondary", () => { state.portfolioEditing = null; renderShell(); })); form.append(actions); formCard.append(form);
   const listCard = card("作品牆", "支援搜尋、縮圖與圖片預覽。"); const search = field("搜尋", "search", "search", "", { placeholder: "搜尋名稱、分類或內容" }); listCard.querySelector(".c-card-header").append(search); const grid = el("div", { className: "portfolio-grid" }); listCard.append(grid); layout.append(formCard, listCard); frame.append(layout); outlet.replaceChildren(frame);
-  form.addEventListener("submit", async (event) => { event.preventDefault(); const body = { date: getValue(form, '[name="date"]'), project: getValue(form, '[name="project"]'), category: getValue(form, '[name="category"]') || "未分類", content: getValue(form, '[name="content"]') }; try { const saved = await api(editing ? `/api/v1/portfolio/${editing.id}` : "/api/v1/portfolio", { method: editing ? "PATCH" : "POST", body }); const files = form.querySelector('[name="files"]').files; if (!editing && files.length) { const data = new FormData(); [...files].forEach((file) => data.append("files", file)); await api(`/api/v1/portfolio/${saved.id}/media`, { method: "POST", body: data }); } toast("作品已儲存"); state.portfolioEditing = null; renderShell(); } catch (error) { toast(formatError(error), "error"); } });
+  const formError = el("p", { className: "form-error", role: "alert", hidden: true });
+  const showFormError = (message) => { formError.textContent = message; formError.hidden = !message; };
+  form.insertBefore(formError, form.querySelector(".form-actions"));
+  if (state.portfolioError) { showFormError(state.portfolioError); state.portfolioError = ""; }
+  const submitButton = form.querySelector('button[type="submit"]');
+  const submitLabel = submitButton.textContent;
+  let saving = false;
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    // 儲存中不接受重複送出：避免連點「新增」建立多件相同作品。
+    if (saving) return;
+    const files = [...form.querySelector('[name="files"]').files];
+    const problem = checkPhotos(files);
+    showFormError(problem);
+    if (problem) return;
+    saving = true; submitButton.disabled = true; submitButton.textContent = files.length ? "上傳中…" : "儲存中…";
+    const body = { date: getValue(form, '[name="date"]'), project: getValue(form, '[name="project"]'), category: getValue(form, '[name="category"]') || "未分類", content: getValue(form, '[name="content"]') };
+    let saved = null;
+    try {
+      saved = await api(editing ? `/api/v1/portfolio/${editing.id}` : "/api/v1/portfolio", { method: editing ? "PATCH" : "POST", body });
+      if (files.length) { const data = new FormData(); files.forEach((file) => data.append("files", file)); await api(`/api/v1/portfolio/${saved.id}/media`, { method: "POST", body: data }); }
+      toast("作品已儲存"); state.portfolioEditing = null; renderShell();
+    } catch (error) {
+      const message = formatError(error);
+      if (saved) {
+        // 作品本身已建立／更新，只有圖片失敗：切到編輯模式並保留錯誤，重試只會補圖，不會再多建一件作品。
+        state.portfolioEditing = { ...saved, media: saved.media || [] };
+        state.portfolioError = `作品資訊已儲存，但圖片沒有上傳成功：${message}`;
+        renderShell();
+        return;
+      }
+      showFormError(message); toast(message, "error");
+      saving = false; submitButton.disabled = false; submitButton.textContent = submitLabel;
+    }
+  });
   async function load() { try { const items = await api(`/api/v1/portfolio?search=${encodeURIComponent(getValue(frame, '[name="search"]'))}`); renderPortfolioGrid(grid, items); } catch (error) { grid.replaceChildren(emptyState(formatError(error))); } }
   search.querySelector("input").addEventListener("input", () => { window.clearTimeout(search._timer); search._timer = window.setTimeout(load, 250); }); await load();
 }
 
 function renderPortfolioGrid(grid, items) {
   grid.replaceChildren(); if (!items.length) { grid.append(emptyState("還沒有作品")); return; }
-  items.forEach((item) => { const cardNode = el("article", { className: "portfolio-card" }); const visual = el("div", { className: "portfolio-visual" }); if (item.media?.length) { const image = el("img", { src: item.media[0].url, alt: item.project }); image.addEventListener("click", () => openImageViewer(item.media, 0)); visual.append(image); if (item.media.length > 1) visual.append(el("span", { className: "media-count", text: `+${item.media.length - 1}` })); } else visual.append(el("span", { className: "visual-placeholder", text: "作品" })); const body = el("div", { className: "portfolio-body" }); body.append(el("div", { className: "c-eyebrow", text: item.category }), el("h3", { text: item.project }), el("p", { text: item.content || "尚未填寫內容" }), el("small", { className: "muted", text: dateText(item.date) })); const actions = el("div", { className: "actions" }); actions.append(button("編輯", "ghost small", () => { state.portfolioEditing = item; renderShell(); }), button("刪除", "danger small", async () => { if (!confirm("確定要刪除這件作品與其圖片嗎？")) return; await api(`/api/v1/portfolio/${item.id}`, { method: "DELETE" }); toast("作品已刪除"); renderShell(); })); body.append(actions); cardNode.append(visual, body); grid.append(cardNode); });
+  items.forEach((item) => { const cardNode = el("article", { className: "portfolio-card" }); const visual = el("div", { className: "portfolio-visual" }); if (item.media?.length) { const open = el("button", { className: "portfolio-open", type: "button", "aria-label": `查看「${item.project}」的 ${item.media.length} 張圖片` }); open.append(el("img", { src: item.media[0].url, alt: item.project })); open.addEventListener("click", () => openImageViewer(item.media, 0)); visual.append(open); visual.append(el("span", { className: "media-count", text: `${item.media.length} 張` })); } else visual.append(el("span", { className: "visual-placeholder", text: "尚無圖片" }), el("small", { className: "visual-hint", text: "按「編輯」可補上圖片" })); const body = el("div", { className: "portfolio-body" }); body.append(el("div", { className: "c-eyebrow", text: item.category }), el("h3", { text: item.project }), el("p", { text: item.content || "尚未填寫內容" }), el("small", { className: "muted", text: dateText(item.date) })); const actions = el("div", { className: "actions" }); actions.append(button("編輯", "ghost small", () => { state.portfolioEditing = item; renderShell(); }), button("刪除", "danger small", async () => { if (!confirm("確定要刪除這件作品與其圖片嗎？")) return; await api(`/api/v1/portfolio/${item.id}`, { method: "DELETE" }); toast("作品已刪除"); renderShell(); })); body.append(actions); cardNode.append(visual, body); grid.append(cardNode); });
 }
 
 function openImageViewer(media, index) {
-  const dialog = el("dialog", { className: "image-dialog" }); const image = el("img", { src: media[index].url, alt: media[index].original_name }); const close = button("關閉", "button secondary", () => dialog.close()); dialog.append(image, el("div", { className: "dialog-actions" }, [close])); document.body.append(dialog); dialog.showModal(); dialog.addEventListener("close", () => dialog.remove(), { once: true });
+  // 相簿式檢視：上一張／下一張、左右方向鍵、縮圖列，可瀏覽作品的全部圖片。
+  let current = index;
+  const dialog = el("dialog", { className: "image-dialog", "aria-label": "作品圖片檢視" });
+  const image = el("img", {});
+  const counter = el("span", { className: "viewer-counter", "aria-live": "polite" });
+  const strip = el("div", { className: "viewer-strip" });
+  const thumbs = media.map((item, position) => {
+    const thumb = el("button", { className: "viewer-thumb", type: "button", "aria-label": `第 ${position + 1} 張` }, [el("img", { src: item.url, alt: "" })]);
+    thumb.addEventListener("click", () => show(position));
+    strip.append(thumb);
+    return thumb;
+  });
+  function show(position) {
+    current = (position + media.length) % media.length;
+    image.src = media[current].url;
+    image.alt = media[current].original_name;
+    counter.textContent = `${current + 1} / ${media.length}`;
+    thumbs.forEach((thumb, i) => { thumb.classList.toggle("active", i === current); if (i === current) thumb.setAttribute("aria-current", "true"); else thumb.removeAttribute("aria-current"); });
+    thumbs[current].scrollIntoView?.({ block: "nearest", inline: "center" });
+  }
+  const previous = button("‹", "button secondary viewer-nav", () => show(current - 1)); previous.setAttribute("aria-label", "上一張");
+  const next = button("›", "button secondary viewer-nav", () => show(current + 1)); next.setAttribute("aria-label", "下一張");
+  const close = button("關閉", "button secondary", () => dialog.close());
+  const stage = el("div", { className: "viewer-stage" }, [previous, image, next]);
+  const bar = el("div", { className: "dialog-actions viewer-bar" }, [counter, close]);
+  dialog.append(stage, bar);
+  if (media.length > 1) dialog.append(strip); else { previous.hidden = true; next.hidden = true; }
+  dialog.addEventListener("keydown", (event) => {
+    if (media.length < 2) return;
+    if (event.key === "ArrowLeft") { event.preventDefault(); show(current - 1); }
+    if (event.key === "ArrowRight") { event.preventDefault(); show(current + 1); }
+  });
+  document.body.append(dialog);
+  show(index);
+  dialog.showModal();
+  dialog.addEventListener("close", () => dialog.remove(), { once: true });
 }
 
 async function renderAnalytics(outlet) {

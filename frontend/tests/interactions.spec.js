@@ -22,7 +22,7 @@ async function mockApi(page, options = {}) {
         { id: "goal-completed", title: "完成作品集整理", category: "工作", description: "整理並發布作品集", target_value: "1", current_value: "1", unit: "件", due_date: "2026-10-31", status: "completed", progress_percent: 100, completed_at: "2026-10-31T10:00:00", progress_logs: [] },
       ];
     } else if (url.pathname.endsWith("/portfolio")) {
-      payload = [{
+      payload = options.portfolio || [{
         id: "test-portfolio",
         date: "2026-11-01",
         time: "12:00",
@@ -41,6 +41,18 @@ async function mockApi(page, options = {}) {
   });
 }
 
+test("操作成功後頁面重繪，提示訊息仍會顯示", async ({ page }) => {
+  await mockApi(page);
+  await page.route("**/api/v1/todos", async (route) => {
+    if (route.request().method() !== "POST") return route.fallback();
+    await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ id: "toast-todo", date: "2026-11-22", title: "提示測試", time: null, location: "", completed: false }) });
+  });
+  await page.goto("/#/todos");
+  await page.locator('[name="title"]').fill("提示測試");
+  await page.getByRole("button", { name: "新增待辦", exact: true }).click();
+  await expect(page.locator(".toast", { hasText: "待辦已儲存" })).toBeVisible();
+});
+
 test("作品圖片預覽可以開啟與關閉", async ({ page }) => {
   await mockApi(page);
   await page.goto("/#/portfolio");
@@ -48,6 +60,117 @@ test("作品圖片預覽可以開啟與關閉", async ({ page }) => {
   await expect(page.locator("dialog")).toBeVisible();
   await page.getByRole("button", { name: "關閉", exact: true }).click();
   await expect(page.locator("dialog")).toHaveCount(0);
+});
+
+const svg = (color) => `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='100'%3E%3Crect width='160' height='100' fill='%23${color}'/%3E%3C/svg%3E`;
+const multiPhotoWork = {
+  id: "multi", date: "2025-05-07", time: "12:00", project: "活動攝影_桃園圖書總館", category: "活動攝影", content: "多張照片",
+  media: [
+    { id: "m1", original_name: "第一張.svg", url: svg("0f766e") },
+    { id: "m2", original_name: "第二張.svg", url: svg("b45309") },
+    { id: "m3", original_name: "第三張.svg", url: svg("4f46e5") },
+  ],
+};
+
+test("作品牆點進去可以瀏覽全部照片", async ({ page }) => {
+  await mockApi(page, { portfolio: [multiPhotoWork] });
+  await page.goto("/#/portfolio");
+  await expect(page.locator(".media-count")).toHaveText("3 張");
+  await page.getByRole("button", { name: /查看「活動攝影_桃園圖書總館」的 3 張圖片/ }).click();
+  const dialog = page.locator("dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog.locator(".viewer-counter")).toHaveText("1 / 3");
+  await expect(dialog.locator(".viewer-stage img")).toHaveAttribute("alt", "第一張.svg");
+  await dialog.getByRole("button", { name: "下一張" }).click();
+  await expect(dialog.locator(".viewer-counter")).toHaveText("2 / 3");
+  await page.keyboard.press("ArrowRight");
+  await expect(dialog.locator(".viewer-stage img")).toHaveAttribute("alt", "第三張.svg");
+  await page.keyboard.press("ArrowRight");
+  await expect(dialog.locator(".viewer-counter")).toHaveText("1 / 3");
+  await dialog.getByRole("button", { name: "第 3 張" }).click();
+  await expect(dialog.locator(".viewer-counter")).toHaveText("3 / 3");
+  await expect(dialog.locator(".viewer-thumb.active")).toHaveCount(1);
+  await page.keyboard.press("Escape");
+  await expect(page.locator("dialog")).toHaveCount(0);
+});
+
+test("沒有圖片的作品提示可編輯補圖，編輯時可追加圖片", async ({ page }) => {
+  const emptyWork = { ...multiPhotoWork, id: "empty", media: [] };
+  await mockApi(page, { portfolio: [emptyWork] });
+  const uploads = [];
+  await page.route("**/api/v1/portfolio/empty**", async (route) => {
+    const request = route.request();
+    if (request.method() === "PATCH") await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(emptyWork) });
+    else if (request.method() === "POST") { uploads.push(request.url()); await route.fulfill({ status: 201, contentType: "application/json", body: "[]" }); }
+    else await route.fallback();
+  });
+  await page.goto("/#/portfolio");
+  await expect(page.locator(".portfolio-open")).toHaveCount(0);
+  await expect(page.locator(".visual-hint")).toContainText("編輯");
+  await page.getByRole("button", { name: "編輯", exact: true }).click();
+  await expect(page.getByLabel("新增圖片（可多選，目前 0 張）")).toBeVisible();
+  await page.getByLabel("新增圖片（可多選，目前 0 張）").setInputFiles({ name: "a.png", mimeType: "image/png", buffer: Buffer.from("x") });
+  await page.getByRole("button", { name: "儲存作品資訊", exact: true }).click();
+  await expect.poll(() => uploads.length).toBe(1);
+  expect(uploads[0]).toContain("/api/v1/portfolio/empty/media");
+});
+
+test("連點新增只會建立一件作品，且儲存中按鈕不可再按", async ({ page }) => {
+  await mockApi(page, { portfolio: [] });
+  const creates = [];
+  await page.route("**/api/v1/portfolio", async (route) => {
+    if (route.request().method() !== "POST") return route.fallback();
+    creates.push(route.request().postDataJSON());
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ id: "new-one", date: "2026-11-22", project: "連點測試", category: "未分類", content: "", media: [] }) });
+  });
+  await page.goto("/#/portfolio");
+  await page.locator('[name="project"]').fill("連點測試");
+  const submit = page.getByRole("button", { name: "新增作品", exact: true });
+  await submit.click();
+  await expect(page.getByRole("button", { name: "儲存中…" })).toBeDisabled();
+  await page.locator("#portfolio-form").evaluate((form) => form.requestSubmit());
+  await expect(page.getByRole("button", { name: "新增作品", exact: true })).toBeVisible();
+  expect(creates).toHaveLength(1);
+});
+
+test("圖片太大或格式不符時在送出前就提示，不會建立作品", async ({ page }) => {
+  await mockApi(page, { portfolio: [] });
+  const writes = [];
+  page.on("request", (request) => { if (request.method() !== "GET" && request.url().includes("/api/v1/portfolio")) writes.push(request.url()); });
+  await page.goto("/#/portfolio");
+  await page.locator('[name="project"]').fill("大圖作品");
+  await page.locator('[name="files"]').setInputFiles({ name: "big.jpg", mimeType: "image/jpeg", buffer: Buffer.alloc(9 * 1024 * 1024) });
+  await page.getByRole("button", { name: "新增作品", exact: true }).click();
+  await expect(page.locator(".form-error")).toContainText("big.jpg");
+  await expect(page.locator(".form-error")).toContainText("8 MB");
+  await page.locator('[name="files"]').setInputFiles({ name: "photo.heic", mimeType: "image/heic", buffer: Buffer.from("x") });
+  await page.getByRole("button", { name: "新增作品", exact: true }).click();
+  await expect(page.locator(".form-error")).toContainText("HEIC");
+  expect(writes).toHaveLength(0);
+});
+
+test("作品建立後圖片上傳失敗：改為編輯模式保留錯誤，重試不會重複建立", async ({ page }) => {
+  await mockApi(page, { portfolio: [] });
+  const created = { id: "half", date: "2026-11-22", project: "半成功", category: "未分類", content: "", media: [] };
+  const calls = [];
+  await page.route("**/api/v1/portfolio**", async (route) => {
+    const request = route.request();
+    if (request.method() === "GET") return route.fallback();
+    calls.push(`${request.method()} ${new URL(request.url()).pathname}`);
+    if (request.url().endsWith("/media")) return route.fulfill({ status: 422, contentType: "application/json", body: JSON.stringify({ error: { message: "圖片內容無法驗證", code: "invalid_media" } }) });
+    return route.fulfill({ status: request.method() === "POST" ? 201 : 200, contentType: "application/json", body: JSON.stringify(created) });
+  });
+  await page.goto("/#/portfolio");
+  await page.locator('[name="project"]').fill("半成功");
+  await page.locator('[name="files"]').setInputFiles({ name: "a.png", mimeType: "image/png", buffer: Buffer.from("x") });
+  await page.getByRole("button", { name: "新增作品", exact: true }).click();
+  await expect(page.locator(".form-error")).toContainText("作品資訊已儲存，但圖片沒有上傳成功：圖片內容無法驗證");
+  await expect(page.getByRole("button", { name: "儲存作品資訊", exact: true })).toBeVisible();
+  await page.locator('[name="files"]').setInputFiles({ name: "b.png", mimeType: "image/png", buffer: Buffer.from("x") });
+  await page.getByRole("button", { name: "儲存作品資訊", exact: true }).click();
+  await expect.poll(() => calls.length).toBe(4);
+  expect(calls).toEqual(["POST /api/v1/portfolio", "POST /api/v1/portfolio/half/media", "PATCH /api/v1/portfolio/half", "POST /api/v1/portfolio/half/media"]);
 });
 
 test("作品集只使用日期不顯示時間", async ({ page }) => {
